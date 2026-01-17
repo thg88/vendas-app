@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: vendas-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false  # Você deve definir isso manualmente no Render
+      - key: FRONTEND_URL
+        sync: false  # Você deve definir isso manualmente após o deploy do frontend
+
+  - type: web
+    name: vendas-frontend
+    env: static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: "https://vendas-backend.onrender.com/api"  # Ajuste para seu domínio do backend
