@@ -314,8 +314,8 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
           <p className="text-xs text-gray-500 mt-1">Vendas Roupas</p>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm text-center">
-          <p className="text-xl font-bold text-primary">{formatCurrency(calculateCommission(salesTodayValue))}</p>
-          <p className="text-xs text-gray-500 mt-1">Comissão Vendas</p>
+          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommission(salesTodayValue))}</p>
+          <p className="text-xs text-gray-500 mt-1">Comissão Roupas</p>
         </div>
       </div>
 
@@ -326,7 +326,7 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
           <p className="text-xs text-gray-500 mt-1">Vendas Semi-Joias</p>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm text-center">
-          <p className="text-xl font-bold text-primary">{formatCurrency(calculateCommissionJoias(salesJoiasValue))}</p>
+          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommissionJoias(salesJoiasValue))}</p>
           <p className="text-xs text-gray-500 mt-1">Comissão Semi-Joias</p>
         </div>
       </div>

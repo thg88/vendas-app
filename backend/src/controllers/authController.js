@@ -57,3 +57,48 @@ export const login = (req, res) => {
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
   });
 };
+
+export const changePassword = (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+
+  if (!username || !currentPassword || !newPassword) {
+    return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ message: 'Nova senha deve ter no mínimo 6 caracteres' });
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ message: 'Nova senha não pode ser igual à atual' });
+  }
+
+  db.get('SELECT * FROM usuarios WHERE username = ?', [username], (err, user) => {
+    if (err) {
+      return res.status(500).json({ message: 'Erro ao buscar usuário' });
+    }
+
+    if (!user) {
+      return res.status(401).json({ message: 'Usuário não encontrado' });
+    }
+
+    const passwordMatch = bcrypt.compareSync(currentPassword, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ message: 'Senha atual incorreta' });
+    }
+
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+
+    db.run(
+      'UPDATE usuarios SET password = ? WHERE id = ?',
+      [hashedPassword, user.id],
+      (err) => {
+        if (err) {
+          console.error('Erro ao atualizar senha:', err);
+          return res.status(500).json({ message: 'Erro ao alterar senha' });
+        }
+        res.json({ message: 'Senha alterada com sucesso' });
+      }
+    );
+  });
+};

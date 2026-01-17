@@ -2,14 +2,21 @@ import axios from 'axios';
 
 // Determinar URL da API baseada no ambiente
 const getAPIUrl = () => {
-  // Em produção, usar a URL do Render
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return `https://${window.location.hostname}/api`;
+  const hostname = window.location.hostname;
+  const protocol = window.location.protocol; // http: ou https:
+  
+  // Se for localhost ou 127.0.0.1 (desenvolvimento local no PC)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${protocol}//${hostname}:5000/api`;
   }
   
-  // Em desenvolvimento, tentar conectar ao backend local
-  const hostname = window.location.hostname;
-  return `http://${hostname}:5000/api`;
+  // Se for um IP (celular ou outro dispositivo acessando o PC)
+  if (hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    return `${protocol}//${hostname}:5000/api`;
+  }
+  
+  // Em produção (domínio real)
+  return `${protocol}//${hostname}/api`;
 };
 
 const API_URL = getAPIUrl();
@@ -31,6 +38,8 @@ export const authService = {
     api.post('/auth/register', { username, email, password }),
   login: (username, password) =>
     api.post('/auth/login', { username, password }),
+  changePassword: (username, currentPassword, newPassword) =>
+    api.post('/auth/change-password', { username, currentPassword, newPassword }),
 };
 
 export const clientService = {

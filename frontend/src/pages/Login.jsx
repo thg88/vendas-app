@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -31,8 +34,8 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold text-dark">Loja da Beth</h1>
-          <p className="text-gray-500">Controle de Vendas</p>
+          <img src="/logo2.png" alt="Loja da Beth" className="h-20 mx-auto object-contain" />
+          
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -55,15 +58,25 @@ export default function Login() {
             <label htmlFor="password" className="text-sm font-semibold text-dark">
               Senha
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Digite sua senha"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 transition"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Digite sua senha"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary focus:ring-opacity-20 transition"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                title={showPassword ? 'Esconder senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -85,11 +98,17 @@ export default function Login() {
         <p className="text-center text-sm mt-4">
           <button
             type="button"
+            onClick={() => setIsChangePasswordOpen(true)}
             className="text-primary underline hover:text-secondary transition font-medium"
           >
-            Esqueci minha senha
+            Mudar senha
           </button>
         </p>
+
+        <ChangePasswordModal 
+          isOpen={isChangePasswordOpen} 
+          onClose={() => setIsChangePasswordOpen(false)} 
+        />
 
         <p className="text-center text-xs text-gray-400 mt-4">
           © Desenvolvido por Thiago Saraiva
