@@ -44,18 +44,26 @@ if (USE_POSTGRES) {
   });
 }
 
+// Função helper para converter placeholders PostgreSQL ($1, $2) para SQLite (?)
+const convertPlaceholders = (text) => {
+  if (USE_POSTGRES) return text;
+  // Converter $1, $2, $3... para ?
+  return text.replace(/\$\d+/g, '?');
+};
+
 export const query = async (text, params = []) => {
   if (USE_POSTGRES) {
     return pool.query(text, params);
   } else {
+    const sqlText = convertPlaceholders(text);
     return new Promise((resolve, reject) => {
       if (params.length > 0) {
-        db.run(text, params, function(err) {
+        db.run(sqlText, params, function(err) {
           if (err) reject(err);
           else resolve({ rows: [], lastID: this.lastID });
         });
       } else {
-        db.all(text, params, (err, rows) => {
+        db.all(sqlText, params, (err, rows) => {
           if (err) reject(err);
           else resolve({ rows });
         });

@@ -1,39 +1,44 @@
-import db from '../database.js';
+import { query } from '../database.js';
 
-export const getAllProducts = (req, res) => {
-  db.all(`
-    SELECT p.*, l.numero_lote, l.status as lote_status
-    FROM produtos p 
-    LEFT JOIN lotes l ON p.lote_id = l.id 
-    ORDER BY p.nome
-  `, (err, rows) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar produtos' });
-    }
+export const getAllProducts = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT p.*, l.numero_lote, l.status as lote_status
+      FROM produtos p 
+      LEFT JOIN lotes l ON p.lote_id = l.id 
+      ORDER BY p.nome
+    `);
+    const rows = result.rows || result;
     res.json(rows);
-  });
+  } catch (err) {
+    console.error('Erro ao buscar produtos:', err);
+    return res.status(500).json({ message: 'Erro ao buscar produtos' });
+  }
 };
 
-export const getProductById = (req, res) => {
+export const getProductById = async (req, res) => {
   const { id } = req.params;
 
-  db.get(`
-    SELECT p.*, l.numero_lote, l.status as lote_status
-    FROM produtos p 
-    LEFT JOIN lotes l ON p.lote_id = l.id 
-    WHERE p.id = ?
-  `, [id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar produto' });
-    }
+  try {
+    const result = await query(`
+      SELECT p.*, l.numero_lote, l.status as lote_status
+      FROM produtos p 
+      LEFT JOIN lotes l ON p.lote_id = l.id 
+      WHERE p.id = $1
+    `, [id]);
+    
+    const row = result.rows ? result.rows[0] : result[0];
     if (!row) {
       return res.status(404).json({ message: 'Produto não encontrado' });
     }
     res.json(row);
-  });
+  } catch (err) {
+    console.error('Erro ao buscar produto:', err);
+    return res.status(500).json({ message: 'Erro ao buscar produto' });
+  }
 };
 
-export const createProduct = (req, res) => {
+export const createProduct = async (req, res) => {
   const { nome, descricao, preco, estoque, tipo, lote_id } = req.body;
 
   if (!nome || !preco) {
@@ -42,44 +47,52 @@ export const createProduct = (req, res) => {
 
   // Se lote_id foi fornecido, verificar se o lote está aberto
   if (lote_id) {
-    db.get("SELECT status FROM lotes WHERE id = ?", [lote_id], (err, lote) => {
-      if (err || !lote) {
+    try {
+      const loteResult = await query("SELECT status FROM lotes WHERE id = $1", [lote_id]);
+      const lote = loteResult.rows ? loteResult.rows[0] : loteResult[0];
+      
+      if (!lote) {
         return res.status(400).json({ message: 'Lote não encontrado ou inválido' });
       }
       if (lote.status !== 'aberto') {
         return res.status(400).json({ message: 'Não é possível adicionar produtos a um lote fechado' });
       }
 
-      insertProduct(nome, descricao, preco, estoque, tipo, lote_id, res);
-    });
+      await insertProduct(nome, descricao, preco, estoque, tipo, lote_id, res);
+    } catch (err) {
+      console.error('Erro ao verificar lote:', err);
+      return res.status(400).json({ message: 'Lote não encontrado ou inválido' });
+    }
   } else {
-    insertProduct(nome, descricao, preco, estoque, tipo, null, res);
+    await insertProduct(nome, descricao, preco, estoque, tipo, null, res);
   }
 };
 
-const insertProduct = (nome, descricao, preco, estoque, tipo, lote_id, res) => {
-  db.run(
-    'INSERT INTO produtos (nome, descricao, preco, estoque, estoque_original, tipo, lote_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [nome, descricao || null, preco, estoque || 0, estoque || 0, tipo || null, lote_id || null],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ message: 'Erro ao criar produto' });
-      }
-      res.status(201).json({ 
-        id: this.lastID, 
-        nome, 
-        descricao: descricao || null, 
-        preco, 
-        estoque: estoque || 0,
-        estoque_original: estoque || 0,
-        tipo: tipo || null,
-        lote_id: lote_id || null
-      });
-    }
-  );
+const insertProduct = async (nome, descricao, preco, estoque, tipo, lote_id, res) => {
+  try {
+    const result = await query(
+      'INSERT INTO produtos (nome, descricao, preco, estoque, estoque_original, tipo, lote_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [nome, descricao || null, preco, estoque || 0, estoque || 0, tipo || null, lote_id || null]
+    );
+    
+    const insertedId = result.rows ? result.rows[0].id : result[0].id;
+    res.status(201).json({ 
+      id: insertedId, 
+      nome, 
+      descricao: descricao || null, 
+      preco, 
+      estoque: estoque || 0,
+      estoque_original: estoque || 0,
+      tipo: tipo || null,
+      lote_id: lote_id || null
+    });
+  } catch (err) {
+    console.error('Erro ao criar produto:', err);
+    return res.status(500).json({ message: 'Erro ao criar produto' });
+  }
 };
 
-export const updateProduct = (req, res) => {
+export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { nome, descricao, preco, estoque, tipo } = req.body;
 
@@ -87,25 +100,26 @@ export const updateProduct = (req, res) => {
     return res.status(400).json({ message: 'Nome e preço são obrigatórios' });
   }
 
-  db.run(
-    'UPDATE produtos SET nome = ?, descricao = ?, preco = ?, estoque = ?, tipo = ? WHERE id = ?',
-    [nome, descricao || null, preco, estoque || 0, tipo || null, id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ message: 'Erro ao atualizar produto' });
-      }
-      res.json({ message: 'Produto atualizado com sucesso' });
-    }
-  );
+  try {
+    await query(
+      'UPDATE produtos SET nome = $1, descricao = $2, preco = $3, estoque = $4, tipo = $5 WHERE id = $6',
+      [nome, descricao || null, preco, estoque || 0, tipo || null, id]
+    );
+    res.json({ message: 'Produto atualizado com sucesso' });
+  } catch (err) {
+    console.error('Erro ao atualizar produto:', err);
+    return res.status(500).json({ message: 'Erro ao atualizar produto' });
+  }
 };
 
-export const deleteProduct = (req, res) => {
+export const deleteProduct = async (req, res) => {
   const { id } = req.params;
 
-  db.run('DELETE FROM produtos WHERE id = ?', [id], function (err) {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao deletar produto' });
-    }
+  try {
+    await query('DELETE FROM produtos WHERE id = $1', [id]);
     res.json({ message: 'Produto deletado com sucesso' });
-  });
+  } catch (err) {
+    console.error('Erro ao deletar produto:', err);
+    return res.status(500).json({ message: 'Erro ao deletar produto' });
+  }
 };
