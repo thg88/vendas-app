@@ -44,7 +44,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Server is running' });
 });
 
+/*
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`CORS configurado para: ${FRONTEND_URL}`);
+}); */
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`CORS configurado para: ${FRONTEND_URL}`);
 });
+
