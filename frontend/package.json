@@ -12,7 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && copy public\\_redirects dist\\_redirects",
     "preview": "vite preview",
     "start": "npm run build && vite preview --port 3000"
   },
