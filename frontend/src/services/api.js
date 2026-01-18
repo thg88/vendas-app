@@ -6,7 +6,7 @@ const getAPIUrl = () => {
   const protocol = window.location.protocol; // http: ou https:
   
   // Se for domínio customizado ou Render
-  if (hostname === 'lojadabeth.com' || hostname.includes('onrender.com')) {
+  if (hostname === 'lojadabeth.com' || hostname === 'www.lojadabeth.com' || hostname.includes('onrender.com')) {
     // Em produção, apontar para o backend específico
     return 'https://vendas-app-dany.onrender.com/api';
   }
