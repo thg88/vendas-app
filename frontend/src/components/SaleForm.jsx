@@ -29,7 +29,7 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
   const [quantity, setQuantity] = useState(1);
   const [stockError, setStockError] = useState('');
 
-  const selectedProduct = selected ? products.find(p => p.id === parseInt(selected)) : null;
+  const selectedProduct = selected ? products.find(p => p.id == selected) : null;
   
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -145,6 +145,7 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
       )}
       
       <button
+        type="button"
         onClick={handleAdd}
         disabled={!selected || stockError !== ''}
         className="w-full px-4 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2"
