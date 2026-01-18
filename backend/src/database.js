@@ -14,8 +14,12 @@ const { Pool } = pkg;
 // Determinar se usar PostgreSQL (Supabase) ou SQLite
 const USE_POSTGRES = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql');
 
-let db;
-let pool;
+//let db;
+//let pool; 
+//Exportar as variáveis para funcionar no server.js
+export let db;
+export let pool;
+
 
 if (USE_POSTGRES) {
   // PostgreSQL (Supabase)
