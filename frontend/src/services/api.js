@@ -5,6 +5,11 @@ const getAPIUrl = () => {
   const hostname = window.location.hostname;
   const protocol = window.location.protocol; // http: ou https:
   
+  // Se for produção no Render
+  if (hostname === 'vendas-app-dany.onrender.com') {
+    return 'https://vendas-app-dany.onrender.com/api';
+  }
+  
   // Se for localhost ou 127.0.0.1 (desenvolvimento local no PC)
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return `${protocol}//${hostname}:5000/api`;
@@ -15,7 +20,7 @@ const getAPIUrl = () => {
     return `${protocol}//${hostname}:5000/api`;
   }
   
-  // Em produção (domínio real)
+  // Fallback para produção (qualquer outro domínio)
   return `${protocol}//${hostname}/api`;
 };
 
