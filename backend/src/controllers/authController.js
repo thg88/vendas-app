@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import db from '../database.js';
+import { query } from '../database.js';
 
-export const register = (req, res) => {
+export const register = async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -11,32 +11,31 @@ export const register = (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  db.run(
-    'INSERT INTO usuarios (username, email, password) VALUES (?, ?, ?)',
-    [username, email, hashedPassword],
-    function (err) {
-      if (err) {
-        if (err.message.includes('UNIQUE')) {
-          return res.status(400).json({ message: 'Usuário ou email já existe' });
-        }
-        return res.status(500).json({ message: 'Erro ao registrar usuário' });
-      }
-      res.status(201).json({ message: 'Usuário registrado com sucesso' });
+  try {
+    await query(
+      'INSERT INTO usuarios (username, email, password) VALUES ($1, $2, $3)',
+      [username, email, hashedPassword]
+    );
+    res.status(201).json({ message: 'Usuário registrado com sucesso' });
+  } catch (err) {
+    if (err.message.includes('UNIQUE')) {
+      return res.status(400).json({ message: 'Usuário ou email já existe' });
     }
-  );
+    console.error('Erro ao registrar usuário:', err);
+    return res.status(500).json({ message: 'Erro ao registrar usuário' });
+  }
 };
 
-export const login = (req, res) => {
+export const login = async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ message: 'Username e password são obrigatórios' });
   }
 
-  db.get('SELECT * FROM usuarios WHERE username = ?', [username], (err, user) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar usuário' });
-    }
+  try {
+    const result = await query('SELECT * FROM usuarios WHERE username = $1', [username]);
+    const user = result.rows ? result.rows[0] : result[0];
 
     if (!user) {
       return res.status(401).json({ message: 'Usuário não encontrado' });
@@ -50,15 +49,18 @@ export const login = (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, username: user.username, email: user.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'sua-chave-secreta',
       { expiresIn: '24h' }
     );
 
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } });
-  });
+  } catch (err) {
+    console.error('Erro ao fazer login:', err);
+    return res.status(500).json({ message: 'Erro ao buscar usuário' });
+  }
 };
 
-export const changePassword = (req, res) => {
+export const changePassword = async (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
 
   if (!username || !currentPassword || !newPassword) {
@@ -73,10 +75,9 @@ export const changePassword = (req, res) => {
     return res.status(400).json({ message: 'Nova senha não pode ser igual à atual' });
   }
 
-  db.get('SELECT * FROM usuarios WHERE username = ?', [username], (err, user) => {
-    if (err) {
-      return res.status(500).json({ message: 'Erro ao buscar usuário' });
-    }
+  try {
+    const result = await query('SELECT * FROM usuarios WHERE username = $1', [username]);
+    const user = result.rows ? result.rows[0] : result[0];
 
     if (!user) {
       return res.status(401).json({ message: 'Usuário não encontrado' });
@@ -89,16 +90,14 @@ export const changePassword = (req, res) => {
 
     const hashedPassword = bcrypt.hashSync(newPassword, 10);
 
-    db.run(
-      'UPDATE usuarios SET password = ? WHERE id = ?',
-      [hashedPassword, user.id],
-      (err) => {
-        if (err) {
-          console.error('Erro ao atualizar senha:', err);
-          return res.status(500).json({ message: 'Erro ao alterar senha' });
-        }
-        res.json({ message: 'Senha alterada com sucesso' });
-      }
+    await query(
+      'UPDATE usuarios SET password = $1 WHERE id = $2',
+      [hashedPassword, user.id]
     );
-  });
+    
+    res.json({ message: 'Senha alterada com sucesso' });
+  } catch (err) {
+    console.error('Erro ao atualizar senha:', err);
+    return res.status(500).json({ message: 'Erro ao alterar senha' });
+  }
 };
