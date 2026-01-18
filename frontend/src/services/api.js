@@ -5,8 +5,9 @@ const getAPIUrl = () => {
   const hostname = window.location.hostname;
   const protocol = window.location.protocol; // http: ou https:
   
-  // Se for produção no Render
-  if (hostname === 'vendas-app-dany.onrender.com') {
+  // Se for produção no Render - usar variável de ambiente ou hardcoded
+  if (hostname.includes('onrender.com')) {
+    // Em produção no Render, apontar para o backend específico
     return 'https://vendas-app-dany.onrender.com/api';
   }
   
