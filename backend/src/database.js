@@ -57,15 +57,20 @@ export const query = async (text, params = []) => {
   } else {
     const sqlText = convertPlaceholders(text);
     return new Promise((resolve, reject) => {
-      if (params.length > 0) {
-        db.run(sqlText, params, function(err) {
-          if (err) reject(err);
-          else resolve({ rows: [], lastID: this.lastID });
-        });
-      } else {
+      // Detectar se é um SELECT ou comando de modificação (INSERT, UPDATE, DELETE)
+      const isSelect = sqlText.trim().toUpperCase().startsWith('SELECT');
+      
+      if (isSelect) {
+        // Para SELECT, usar db.all() para buscar múltiplas linhas
         db.all(sqlText, params, (err, rows) => {
           if (err) reject(err);
           else resolve({ rows });
+        });
+      } else {
+        // Para INSERT, UPDATE, DELETE, usar db.run()
+        db.run(sqlText, params, function(err) {
+          if (err) reject(err);
+          else resolve({ rows: [], lastID: this.lastID });
         });
       }
     });

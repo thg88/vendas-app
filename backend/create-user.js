@@ -17,8 +17,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Dados do usuário a ser criado
-const username = 'vendedor';
-const email = 'vendedor@exemplo.com';
+const username = 'elisabeth';
+const email = 'btsrv010203@gmail.com';
 const password = '123456';
 
 // Criptografar a senha

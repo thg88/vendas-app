@@ -41,7 +41,12 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Usuário não encontrado' });
     }
 
+    console.log('Usuário encontrado:', user.username);
+    console.log('Senha armazenada:', user.password);
+    console.log('Senha enviada:', password);
+    
     const passwordMatch = bcrypt.compareSync(password, user.password);
+    console.log('Senha corresponde?', passwordMatch);
 
     if (!passwordMatch) {
       return res.status(401).json({ message: 'Senha incorreta' });
