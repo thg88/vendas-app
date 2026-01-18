@@ -505,7 +505,7 @@ export default function LotesManagement() {
                                 const productId = e.target.value;
                                 setSelectedProduct(productId);
                                 if (productId) {
-                                  const product = allProducts.find(p => p.id === parseInt(productId));
+                                  const product = allProducts.find(p => p.id == productId);
                                   if (product) {
                                     setProductData({
                                       nome: product.nome,

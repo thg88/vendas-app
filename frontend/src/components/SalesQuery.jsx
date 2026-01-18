@@ -91,7 +91,7 @@ export default function SalesQuery() {
     }
 
     if (selectedClientId) {
-      filtered = filtered.filter(sale => sale.cliente_id === parseInt(selectedClientId));
+      filtered = filtered.filter(sale => sale.cliente_id == selectedClientId);
     }
 
     if (selectedPaymentMethod) {
