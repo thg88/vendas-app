@@ -73,7 +73,6 @@ export const updateWish = async (req, res) => {
       [nome, item, data_pedido, id]
     );
     
-    // PostgreSQL não tem rows.length como SQLite, então checamos de forma diferente
     res.json({ message: 'Desejo atualizado com sucesso' });
   } catch (err) {
     console.error('Erro ao atualizar desejo:', err);

@@ -1,20 +1,25 @@
-import sqlite3 from 'sqlite3';
+import pkg from 'pg';
 import bcrypt from 'bcryptjs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
-const dbPath = path.join(__dirname, 'vendas.db');
+const { Pool } = pkg;
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Erro ao conectar ao banco de dados:', err);
-    process.exit(1);
-  }
-  console.log('Conectado ao banco de dados SQLite');
-});
+// PostgreSQL
+const isProduction = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('supabase');
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+};
+
+if (isProduction) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false,
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 // Dados do usuário a ser criado
 const username = 'elisabeth';
@@ -25,16 +30,17 @@ const password = '123456';
 const hashedPassword = bcrypt.hashSync(password, 10);
 
 // Inserir o usuário
-db.run(
-  'INSERT INTO usuarios (username, email, password) VALUES (?, ?, ?)',
+pool.query(
+  'INSERT INTO usuarios (username, email, password) VALUES ($1, $2, $3)',
   [username, email, hashedPassword],
-  function (err) {
+  (err, result) => {
     if (err) {
-      if (err.message.includes('UNIQUE')) {
+      if (err.message.includes('duplicate')) {
         console.log('❌ Usuário já existe!');
       } else {
         console.error('Erro ao criar usuário:', err.message);
       }
+      pool.end();
       process.exit(1);
     }
     console.log('✅ Usuário criado com sucesso!');
@@ -44,7 +50,7 @@ db.run(
     console.log(`Username: ${username}`);
     console.log(`Senha: ${password}`);
     console.log('─────────────────────');
-    db.close();
+    pool.end();
     process.exit(0);
   }
 );

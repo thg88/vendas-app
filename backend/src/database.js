@@ -1,102 +1,38 @@
-import sqlite3 from 'sqlite3';
 import pkg from 'pg';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+dotenv.config({ path: '.env.local' });
+dotenv.config(); // Fallback para .env se .env.local não existir
 
 const { Pool } = pkg;
 
-// Determinar se usar PostgreSQL (Supabase) ou SQLite
-const USE_POSTGRES = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgresql');
+// PostgreSQL (Supabase ou local)
+const isProduction = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('supabase');
+const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+};
 
-//let db;
-//let pool; 
-//Exportar as variáveis para funcionar no server.js
-export let db;
-export let pool;
-
-
-if (USE_POSTGRES) {
-  // PostgreSQL (Supabase)
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-
-  pool.on('error', (err) => {
-    console.error('Erro na pool de conexão PostgreSQL:', err);
-  });
-
-  console.log('Usando banco de dados PostgreSQL (Supabase)');
-} else {
-  // SQLite (desenvolvimento local)
-  const dbPath = path.join(__dirname, '..', 'vendas.db');
-
-  db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-      console.error('Erro ao conectar ao banco de dados:', err);
-    } else {
-      console.log('Conectado ao banco de dados SQLite');
-    }
-  });
+// Usar SSL apenas para Supabase (produção)
+if (isProduction) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false,
+  };
 }
 
-// Função helper para converter placeholders PostgreSQL ($1, $2) para SQLite (?)
-const convertPlaceholders = (text) => {
-  if (USE_POSTGRES) return text;
-  // Converter $1, $2, $3... para ?
-  return text.replace(/\$\d+/g, '?');
-};
+export const pool = new Pool(poolConfig);
+
+pool.on('error', (err) => {
+  console.error('Erro na pool de conexão PostgreSQL:', err);
+});
+
+console.log('Usando banco de dados PostgreSQL');
 
 export const query = async (text, params = []) => {
-  if (USE_POSTGRES) {
-    return pool.query(text, params);
-  } else {
-    const sqlText = convertPlaceholders(text);
-    return new Promise((resolve, reject) => {
-      // Detectar se é um SELECT ou comando de modificação (INSERT, UPDATE, DELETE)
-      const isSelect = sqlText.trim().toUpperCase().startsWith('SELECT');
-      
-      if (isSelect) {
-        // Para SELECT, usar db.all() para buscar múltiplas linhas
-        db.all(sqlText, params, (err, rows) => {
-          if (err) reject(err);
-          else resolve({ rows });
-        });
-      } else {
-        // Para INSERT, UPDATE, DELETE, usar db.run()
-        db.run(sqlText, params, function(err) {
-          if (err) reject(err);
-          else resolve({ rows: [], lastID: this.lastID });
-        });
-      }
-    });
-  }
+  return pool.query(text, params);
 };
-
-/*
-export const initializeDatabase = () => {
-  if (USE_POSTGRES) {
-    initializePostgreSQL();
-  } else {
-    initializeSQLite();
-  }
-};
-*/
 
 export const initializeDatabase = async () => {
-  if (USE_POSTGRES) {
-    await initializePostgreSQL();
-  } else {
-    await initializeSQLite();
-  }
+  await initializePostgreSQL();
 };
 
 const initializePostgreSQL = async () => {
@@ -178,11 +114,12 @@ const initializePostgreSQL = async () => {
         quantidade INTEGER NOT NULL,
         quantidade_original INTEGER NOT NULL,
         preco_unitario DECIMAL(10, 2) NOT NULL,
-        subtotal DECIMAL(10, 2) NOT NULL
+        subtotal DECIMAL(10, 2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Tabela de pagamentos
+    // Tabela de pagamentos de venda
     await pool.query(`
       CREATE TABLE IF NOT EXISTS pagamentos_venda (
         id SERIAL PRIMARY KEY,
@@ -212,163 +149,4 @@ const initializePostgreSQL = async () => {
   }
 };
 
-/*
-const initializeSQLite = () => {
-  db.serialize(() => {
-    // Tabela de produtos
-    db.run(`
-      CREATE TABLE IF NOT EXISTS produtos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        descricao TEXT,
-        preco REAL NOT NULL,
-        estoque INTEGER DEFAULT 0,
-        estoque_original INTEGER DEFAULT 0,
-        tipo TEXT,
-        lote_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (lote_id) REFERENCES lotes(id)
-      )
-    `);
-
-    // Tabela de vendas
-    db.run(`
-      CREATE TABLE IF NOT EXISTS vendas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cliente_id INTEGER NOT NULL,
-        valor_total REAL NOT NULL,
-        forma_pagamento TEXT NOT NULL,
-        status TEXT DEFAULT 'ativa',
-        resumo_original TEXT,
-        data_venda DATETIME DEFAULT CURRENT_TIMESTAMP,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-      )
-    `);
-
-    // Tabela de itens de venda
-    db.run(`
-      CREATE TABLE IF NOT EXISTS itens_venda (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        venda_id INTEGER NOT NULL,
-        produto_id INTEGER NOT NULL,
-        quantidade INTEGER NOT NULL,
-        quantidade_original INTEGER NOT NULL,
-        preco_unitario REAL NOT NULL,
-        subtotal REAL NOT NULL,
-        FOREIGN KEY (venda_id) REFERENCES vendas(id),
-        FOREIGN KEY (produto_id) REFERENCES produtos(id)
-      )
-    `);
-
-    // Tabela de pagamentos
-    db.run(`
-      CREATE TABLE IF NOT EXISTS pagamentos_venda (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        venda_id INTEGER NOT NULL,
-        valor_pago REAL NOT NULL,
-        tipo_pagamento TEXT NOT NULL,
-        data_pagamento DATETIME DEFAULT CURRENT_TIMESTAMP,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (venda_id) REFERENCES vendas(id)
-      )
-    `);
-
-    // Tabela de wishlist
-    db.run(`
-      CREATE TABLE IF NOT EXISTS wishlist (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        item TEXT NOT NULL,
-        data_pedido DATE NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    console.log('Banco de dados SQLite inicializado com sucesso');
-  });
-};
-*/
-
-const initializeSQLite = () => {
-  return new Promise((resolve, reject) => {
-    db.serialize(() => {
-      try {
-        db.run(`
-          CREATE TABLE IF NOT EXISTS produtos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            descricao TEXT,
-            preco REAL NOT NULL,
-            estoque INTEGER DEFAULT 0,
-            estoque_original INTEGER DEFAULT 0,
-            tipo TEXT,
-            lote_id INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (lote_id) REFERENCES lotes(id)
-          )
-        `);
-
-        db.run(`
-          CREATE TABLE IF NOT EXISTS vendas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cliente_id INTEGER NOT NULL,
-            valor_total REAL NOT NULL,
-            forma_pagamento TEXT NOT NULL,
-            status TEXT DEFAULT 'ativa',
-            resumo_original TEXT,
-            data_venda DATETIME DEFAULT CURRENT_TIMESTAMP,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (cliente_id) REFERENCES clientes(id)
-          )
-        `);
-
-        db.run(`
-          CREATE TABLE IF NOT EXISTS itens_venda (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            venda_id INTEGER NOT NULL,
-            produto_id INTEGER NOT NULL,
-            quantidade INTEGER NOT NULL,
-            quantidade_original INTEGER NOT NULL,
-            preco_unitario REAL NOT NULL,
-            subtotal REAL NOT NULL,
-            FOREIGN KEY (venda_id) REFERENCES vendas(id),
-            FOREIGN KEY (produto_id) REFERENCES produtos(id)
-          )
-        `);
-
-        db.run(`
-          CREATE TABLE IF NOT EXISTS pagamentos_venda (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            venda_id INTEGER NOT NULL,
-            valor_pago REAL NOT NULL,
-            tipo_pagamento TEXT NOT NULL,
-            data_pagamento DATETIME DEFAULT CURRENT_TIMESTAMP,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (venda_id) REFERENCES vendas(id)
-          )
-        `);
-
-        db.run(`
-          CREATE TABLE IF NOT EXISTS wishlist (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            item TEXT NOT NULL,
-            data_pedido DATE NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          )
-        `);
-
-        console.log('Banco de dados SQLite inicializado com sucesso');
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    });
-  });
-};
-
-
-export default db;
+export default pool;

@@ -27,7 +27,7 @@ npm run dev
 Você verá:
 ```
 Servidor rodando na porta 5000
-Conectado ao banco de dados SQLite
+Usando banco de dados PostgreSQL
 ```
 
 **Terminal 2 - Frontend (Port 3000):**
@@ -103,7 +103,7 @@ Qualquer username/password funcionam:
 
 - Localização: `backend/vendas.db`
 - Criado automaticamente na primeira execução
-- Tipo: SQLite
+- Tipo: PostgreSQL
 - Totalmente funcional e pronto para produção
 
 ---
@@ -130,7 +130,7 @@ Qualquer username/password funcionam:
 
 **Backend:**
 - Node.js + Express
-- SQLite3
+- PostgreSQL (local ou Supabase)
 - JWT para autenticação
 - bcryptjs para criptografia
 

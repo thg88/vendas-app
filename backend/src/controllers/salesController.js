@@ -108,21 +108,33 @@ export const createSale = async (req, res) => {
       [cliente_id, valor_total, forma_pagamento, status, JSON.stringify(resumoOriginal), data_venda]
     );
     
-    const vendaId = vendaResult.rows ? vendaResult.rows[0].id : vendaResult[0].id;
+    let vendaId;
+    if (vendaResult.rows && vendaResult.rows[0]) {
+      // PostgreSQL
+      vendaId = vendaResult.rows[0].id;
+    } else {
+      throw new Error('Erro ao obter ID da venda inserida');
+    }
 
     // Inserir itens da venda e atualizar estoque
     for (let i = 0; i < itens.length; i++) {
       const item = itens[i];
       
+      // Garantir que os IDs são números
+      const produtoId = parseInt(item.produto_id) || item.produto_id;
+      const quantidade = parseInt(item.quantidade) || item.quantidade;
+      const precoUnitario = parseFloat(item.preco_unitario) || item.preco_unitario;
+      const subtotal = parseFloat(item.subtotal) || item.subtotal;
+      
       await query(
         'INSERT INTO itens_venda (venda_id, produto_id, quantidade, quantidade_original, preco_unitario, subtotal) VALUES ($1, $2, $3, $4, $5, $6)',
-        [vendaId, item.produto_id, item.quantidade, item.quantidade, item.preco_unitario, item.subtotal]
+        [vendaId, produtoId, quantidade, quantidade, precoUnitario, subtotal]
       );
 
       // Atualizar estoque do produto
       await query(
         'UPDATE produtos SET estoque = estoque - $1 WHERE id = $2',
-        [item.quantidade, item.produto_id]
+        [quantidade, produtoId]
       );
     }
 
@@ -134,8 +146,9 @@ export const createSale = async (req, res) => {
       message: 'Venda criada com sucesso'
     });
   } catch (err) {
-    console.error('Erro ao criar venda:', err);
-    return res.status(500).json({ message: 'Erro ao criar venda' });
+    console.error('Erro ao criar venda:', err.message);
+    console.error('Stack:', err.stack);
+    return res.status(500).json({ message: 'Erro ao criar venda: ' + err.message });
   }
 };
 

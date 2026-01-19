@@ -13,9 +13,8 @@ backend/
 │   ├── routes/
 │   │   ├── lotesRoutes.js ← API dos lotes
 │   │   └── ...
-│   ├── database.js ← Tabelas (incluindo lotes)
+│   ├── database.js ← Tabelas PostgreSQL (incluindo lotes)
 │   └── server.js ← Registrar novas rotas aqui
-└── vendas.db ← Banco de dados SQLite
 ```
 
 ### Frontend
@@ -48,7 +47,7 @@ frontend/src/
 4. Backend: lotesController.js
    └─ createLote()
    └─ INSERT INTO lotes (...)
-   └─ SQLite Database
+   └─ PostgreSQL Database
 
 5. Response retorna para Frontend
    └─ setLoteAberto(response.data)
@@ -72,7 +71,7 @@ frontend/src/
    └─ createProduct()
    └─ Valida: status lote = 'aberto'
    └─ INSERT INTO produtos (..., lote_id, ...)
-   └─ SQLite Database
+   └─ PostgreSQL Database
 
 5. Response retorna para Frontend
    └─ setLoteAberto({ ...loteAberto, produtos })
@@ -179,17 +178,14 @@ const filteredLotes = lotes.filter(l =>
 ```bash
 # Ver logs em tempo real
 npm run dev  # Frontend
-npm start    # Backend
+npm run dev  # Backend
 
-# Ver banco de dados
-sqlite3 backend/vendas.db
-> .tables
-> SELECT * FROM lotes;
-> SELECT * FROM produtos WHERE lote_id IS NOT NULL;
-
-# Resetar banco
-rm backend/vendas.db
-npm start
+# Ver banco de dados PostgreSQL (desenvolvimento local)
+psql -U postgres -d vendas_db
+\dt  # Listar tabelas
+SELECT * FROM lotes;
+SELECT * FROM produtos WHERE lote_id IS NOT NULL;
+\q  # Sair
 ```
 
 ### Debugging Frontend
@@ -236,11 +232,11 @@ debugger;  // Adicione em qualquer linha
 {
   "dependencies": {
     "express": "^4.x",
-    "sqlite3": "^5.x",
+    "pg": "^8.x",
     "cors": "^2.x",
     "dotenv": "^16.x",
     "jsonwebtoken": "^9.x",
-    "bcrypt": "^5.x"
+    "bcryptjs": "^2.x"
   }
 }
 ```
