@@ -54,7 +54,7 @@ export const login = async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, username: user.username, email: user.email },
-      process.env.JWT_SECRET || 'sua-chave-secreta',
+      process.env.JWT_SECRET || 'default-secret-key-change-in-production',
       { expiresIn: '24h' }
     );
 

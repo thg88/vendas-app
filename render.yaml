@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 5000
       - key: JWT_SECRET
-        generateValue: true
+        sync: false  # Configure manualmente com um valor fixo no Render
       - key: DATABASE_URL
         sync: false  # Você deve definir isso manualmente no Render
       - key: FRONTEND_URL
