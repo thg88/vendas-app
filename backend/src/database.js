@@ -8,8 +8,17 @@ const { Pool } = pkg;
 
 // PostgreSQL (Supabase ou local)
 const isProduction = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('supabase');
+/*const poolConfig = {
+  connectionString: process.env.DATABASE_URL,
+}; */
+
 const poolConfig = {
   connectionString: process.env.DATABASE_URL,
+
+  max: 3,
+  min: 1, // Manter pool ativa
+  idleTimeoutMillis: 60000, // 1 min
+  connectionTimeoutMillis: 5000,
 };
 
 // Usar SSL apenas para Supabase (produção)
@@ -24,6 +33,16 @@ export const pool = new Pool(poolConfig);
 pool.on('error', (err) => {
   console.error('Erro na pool de conexão PostgreSQL:', err);
 });
+
+// Warm-up da pool (executa uma vez no startup)
+(async () => {
+  try {
+    await pool.query('SELECT 1');
+    console.log('Pool PostgreSQL aquecida');
+  } catch (err) {
+    console.error('Falha ao aquecer pool:', err);
+  }
+})();
 
 console.log('Usando banco de dados PostgreSQL');
 
