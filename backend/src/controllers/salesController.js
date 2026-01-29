@@ -214,9 +214,10 @@ export const deleteItemFromSale = async (req, res) => {
       [item.venda_id]
     );
     const countData = countResult.rows ? countResult.rows[0] : countResult[0];
+    const itemCount = parseInt(countData.count);
 
     // Se não tem mais itens, marcar como cancelada e zerar o valor
-    if (countData.count === 0) {
+    if (itemCount === 0) {
       await query(
         'UPDATE vendas SET status = $1, valor_total = 0 WHERE id = $2',
         ['cancelada', item.venda_id]
