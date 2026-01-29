@@ -827,7 +827,7 @@ export default function LotesManagement() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {loteInfoData.produtos.map(produto => {
+                        {[...loteInfoData.produtos].sort((a, b) => a.nome.localeCompare(b.nome)).map(produto => {
                           const vendido = loteInfoData.vendas_produtos
                             ? (loteInfoData.vendas_produtos.find(v => v.produto_id === produto.id)?.total_vendido || 0)
                             : 0;
