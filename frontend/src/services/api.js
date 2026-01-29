@@ -39,22 +39,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Interceptor para resposta - redireciona para login se sessão expirou
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Limpar dados de autenticação
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Redirecionar para login
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export const authService = {
   register: (username, email, password) =>
     api.post('/auth/register', { username, email, password }),
