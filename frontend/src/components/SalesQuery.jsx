@@ -34,6 +34,25 @@ export default function SalesQuery() {
     loadClients();
   }, []);
 
+  useEffect(() => {
+    // Quando as vendas são carregadas, calcular os totais automaticamente
+    if (sales.length > 0) {
+      const total = sales.reduce((sum, sale) => sum + sale.valor_total, 0);
+      setTotalSalesAmount(total);
+      
+      // Calcular total recebido (vendas à vista + parcelas pagas das vendas à prazo)
+      const totalRecebidoCalc = sales.reduce((sum, sale) => {
+        if (sale.forma_pagamento === 'vista') {
+          return sum + sale.valor_total;
+        } else if (sale.forma_pagamento === 'prazo' && sale.paymentInfo) {
+          return sum + (sale.paymentInfo.total_pago || 0);
+        }
+        return sum;
+      }, 0);
+      setTotalRecebido(totalRecebidoCalc);
+    }
+  }, [sales]);
+
   const loadSales = async () => {
     setLoading(true);
     try {
