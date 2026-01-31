@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+/*
 // Determinar URL da API baseada no ambiente
 const getAPIUrl = () => {
   const hostname = window.location.hostname;
@@ -29,6 +30,11 @@ const API_URL = getAPIUrl();
 
 const api = axios.create({
   baseURL: API_URL,
+});
+*/
+
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
 });
 
 api.interceptors.request.use((config) => {
