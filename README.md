@@ -28,7 +28,7 @@ App controle vendas/
     │   ├── styles/
     │   ├── App.jsx
     │   └── main.jsx
-    ├── public/
+    ├── public/_redirects
     ├── package.json
     └── vite.config.js
 ```
