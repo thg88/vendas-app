@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && copyfiles -f public/_redirects dist/ && copyfiles -f public/.htaccess dist/",
+    "build": "vite build && copyfiles -f public/_redirects dist/ && copyfiles -f public/.htaccess dist/ && copyfiles -f public/404.html dist/",
     "preview": "vite preview",
     "start": "npm run build && node server.js"
   },

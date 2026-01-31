@@ -23,10 +23,6 @@ services:
     plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
-    routes:
-      - path: "/*"
-        destination: "/index.html"
-        type: 200
     envVars:
       - key: VITE_API_URL
         value: "https://vendas-backend.onrender.com/api"  # Ajuste para seu domínio do backend
