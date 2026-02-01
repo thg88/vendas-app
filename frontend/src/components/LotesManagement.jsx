@@ -696,12 +696,22 @@ export default function LotesManagement() {
                     </table>
 
                     <div className="bg-gray-50 p-4 border-t border-gray-200">
-                      <p className="text-sm text-gray-600">Total do Lote</p>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(
-                          loteAberto.produtos.reduce((sum, p) => sum + (p.preco * p.estoque), 0)
-                        )}
-                      </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Total do Lote</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {formatCurrency(
+                              loteAberto.produtos.reduce((sum, p) => sum + (p.preco * parseInt(p.estoque, 10)), 0)
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Qtde Produtos</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {loteAberto.produtos.reduce((sum, p) => sum + parseInt(p.estoque, 10), 0)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (

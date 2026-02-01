@@ -144,24 +144,19 @@ export const createLote = async (req, res) => {
     }
 
     // Buscar o próximo número de lote
-    const countResult = await query("SELECT COUNT(*) as count FROM lotes");
-    const countData = countResult.rows ? countResult.rows[0] : countResult[0];
-    const proximoNumero = String((countData?.count || 0) + 1).padStart(3, '0');
+    const maxResult = await query("SELECT MAX(CAST(numero_lote AS INTEGER)) as max_numero FROM lotes");
+    const maxData = maxResult.rows ? maxResult.rows[0] : maxResult[0];
+    const proximoNumero = String((parseInt(maxData?.max_numero || 0, 10) + 1)).padStart(3, '0');
 
     // Criar novo lote
     const insertResult = await query(
-      'INSERT INTO lotes (numero_lote, status, tipo, data_recebimento, observacoes) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+      'INSERT INTO lotes (numero_lote, status, tipo, data_recebimento, observacoes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [proximoNumero, 'aberto', tipo, data_recebimento, observacoes || null]
     );
     
-    const insertedId = insertResult.rows ? insertResult.rows[0].id : insertResult[0].id;
+    const lote = insertResult.rows ? insertResult.rows[0] : insertResult[0];
     res.status(201).json({
-      id: insertedId,
-      numero_lote: proximoNumero,
-      status: 'aberto',
-      tipo,
-      data_recebimento,
-      observacoes: observacoes || null,
+      ...lote,
       produtos: []
     });
   } catch (err) {

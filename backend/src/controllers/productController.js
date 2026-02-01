@@ -102,7 +102,7 @@ export const updateProduct = async (req, res) => {
 
   try {
     await query(
-      'UPDATE produtos SET nome = $1, descricao = $2, preco = $3, estoque = $4, tipo = $5 WHERE id = $6',
+      'UPDATE produtos SET nome = $1, descricao = $2, preco = $3, estoque = $4, estoque_original = $4, tipo = $5 WHERE id = $6',
       [nome, descricao || null, preco, estoque || 0, tipo || null, id]
     );
     res.json({ message: 'Produto atualizado com sucesso' });
