@@ -340,6 +340,24 @@ export default function SalesQuery() {
     });
   };
 
+  const isWithin7Days = (dateString) => {
+    const saleDate = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today - saleDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
+
+  const canEditDeleteItems = (sale) => {
+    if (sale.forma_pagamento === 'consignado') {
+      return true;
+    }
+    if (sale.forma_pagamento === 'prazo' || sale.forma_pagamento === 'vista') {
+      return isWithin7Days(sale.data_venda);
+    }
+    return false;
+  };
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -529,7 +547,8 @@ export default function SalesQuery() {
                         const isFullyPaid = sale.forma_pagamento === 'vista' || (
                           sale.paymentInfo && typeof sale.paymentInfo.saldo_pendente === 'number' && sale.paymentInfo.saldo_pendente === 0 && sale.paymentInfo.total_pago > 0
                         );
-                        const colorClass = isPartialPending ? 'text-red-600' : (isFullyPaid ? 'text-green-600' : 'text-primary');
+                        const isCancelledConsignado = sale.status === 'cancelada' && sale.forma_pagamento === 'consignado';
+                        const colorClass = isPartialPending ? 'text-red-600' : (isFullyPaid ? 'text-green-600' : (isCancelledConsignado ? 'text-gray-500' : 'text-primary'));
                         const displayValue = isPartialPending ? formatCurrency(sale.paymentInfo.saldo_pendente) : formatCurrency(sale.valor_total);
                         return (
                           <span className={`font-bold text-sm sm:text-lg ${colorClass}`}>
@@ -570,7 +589,7 @@ export default function SalesQuery() {
                               <th className="px-4 py-2 text-center font-semibold text-dark">Qtd</th>
                               <th className="px-4 py-2 text-right font-semibold text-dark">Preço Unit.</th>
                               <th className="px-4 py-2 text-right font-semibold text-dark">Subtotal</th>
-                              {sale.forma_pagamento === 'consignado' && (
+                              {canEditDeleteItems(sale) && (
                                 <th className="px-4 py-2 text-center font-semibold text-dark">Ações</th>
                               )}
                             </tr>
@@ -590,20 +609,20 @@ export default function SalesQuery() {
                                 <td className="px-4 py-2 text-right font-semibold text-primary">
                                   {formatCurrency(item.subtotal)}
                                 </td>
-                                {sale.forma_pagamento === 'consignado' && (
+                                {canEditDeleteItems(sale) && (
                                   <td className="px-4 py-2 text-center">
                                     <div className="flex gap-1 justify-center">
                                       <button
                                         onClick={() => handleEditItem(item)}
                                         className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition"
-                                        title="Editar quantidade"
+                                        title={sale.forma_pagamento === 'consignado' ? 'Editar quantidade' : 'Editar quantidade (7 dias)'}
                                       >
                                         <Edit2 size={16} />
                                       </button>
                                       <button
                                         onClick={() => handleDeleteItem(item.id, sale.id)}
                                         className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200 transition"
-                                        title="Remover item e restaurar estoque"
+                                        title={sale.forma_pagamento === 'consignado' ? 'Remover item e restaurar estoque' : 'Remover item e restaurar estoque (7 dias)'}
                                       >
                                         <Trash2 size={16} />
                                       </button>
@@ -617,7 +636,7 @@ export default function SalesQuery() {
                       </div>
                       
                       {/* Botão Quitar ou Informações */}
-                      {(sale.forma_pagamento === 'prazo' || sale.forma_pagamento === 'consignado') && (
+                      {((sale.forma_pagamento === 'prazo' || sale.forma_pagamento === 'consignado') || sale.status === 'cancelada') && (
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
                           {sale.status === 'cancelada' ? (
                             <button
@@ -865,10 +884,10 @@ export default function SalesQuery() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className={`bg-gradient-to-r p-4 flex items-center justify-between ${
-                selectedSaleForInfo.forma_pagamento === 'prazo' ? 'from-blue-400 to-blue-500' : 'from-gray-400 to-gray-500'
+                selectedSaleForInfo.status === 'cancelada' ? 'from-gray-400 to-gray-500' : selectedSaleForInfo.forma_pagamento === 'prazo' ? 'from-blue-400 to-blue-500' : 'from-gray-400 to-gray-500'
               }`}>
                 <h3 className="font-bold text-white text-lg">
-                  {selectedSaleForInfo.forma_pagamento === 'prazo' ? 'Histórico de Pagamentos' : 'Informações da Venda'}
+                  {selectedSaleForInfo.status === 'cancelada' ? 'Informações da Venda Cancelada' : selectedSaleForInfo.forma_pagamento === 'prazo' ? 'Histórico de Pagamentos' : 'Informações da Venda'}
                 </h3>
                 <button
                   onClick={() => setShowInfoModal(false)}
@@ -883,7 +902,54 @@ export default function SalesQuery() {
                   <p className="font-semibold text-dark">{selectedSaleForInfo.cliente_nome}</p>
                 </div>
 
-                {selectedSaleForInfo.forma_pagamento === 'prazo' ? (
+                {selectedSaleForInfo.status === 'cancelada' ? (
+                  <>
+                    {/* Informações para venda cancelada (prazo ou consignado) */}
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                      <p className="text-sm font-semibold text-yellow-900 mb-2">Status: CANCELADA</p>
+                      <p className="text-xs text-yellow-800">Esta venda foi cancelada por ter todos os itens removidos.</p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold text-dark mb-3">{selectedSaleForInfo.forma_pagamento === 'consignado' ? 'Itens que foram consignados:' : 'Itens que constavam na venda:'}</p>
+                      {selectedSaleForInfo.resumo_original ? (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {(() => {
+                            try {
+                              const itens = JSON.parse(selectedSaleForInfo.resumo_original);
+                              return itens.map((item, idx) => (
+                                <div key={idx} className="border-l-4 border-blue-300 pl-3 py-2 bg-blue-50 rounded-r">
+                                  <p className="text-sm font-semibold text-gray-800 mb-2">
+                                    {item.produto_nome || 'Produto desconhecido'}
+                                  </p>
+                                  <p className="text-sm text-gray-700">
+                                    <span className="font-medium">Quantidade:</span> {item.quantidade}
+                                  </p>
+                                  <p className="text-sm text-gray-700">
+                                    <span className="font-medium">Preço Unit.:</span> {new Intl.NumberFormat('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL'
+                                    }).format(item.preco_unitario)}
+                                  </p>
+                                  <p className="text-sm text-gray-700">
+                                    <span className="font-medium">Subtotal:</span> {new Intl.NumberFormat('pt-BR', {
+                                      style: 'currency',
+                                      currency: 'BRL'
+                                    }).format(item.subtotal)}
+                                  </p>
+                                </div>
+                              ));
+                            } catch (e) {
+                              return <p className="text-sm text-gray-600">Sem informações de itens</p>;
+                            }
+                          })()}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-600">Sem informações de itens originais</p>
+                      )}
+                    </div>
+                  </>
+                ) : selectedSaleForInfo.forma_pagamento === 'prazo' ? (
                   <>
                     {/* Histórico de Pagamentos para venda a prazo */}
                     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -941,14 +1007,16 @@ export default function SalesQuery() {
                   </>
                 ) : (
                   <>
-                    {/* Informações para venda consignada cancelada */}
-                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                      <p className="text-sm font-semibold text-yellow-900 mb-2">Status: CANCELADA</p>
-                      <p className="text-xs text-yellow-800">Esta venda foi cancelada por ter todos os itens removidos.</p>
-                    </div>
+                    {/* Informações para venda consignada cancelada ou histórico */}
+                    {selectedSaleForInfo.status === 'cancelada' && (
+                      <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                        <p className="text-sm font-semibold text-yellow-900 mb-2">Status: CANCELADA</p>
+                        <p className="text-xs text-yellow-800">Esta venda foi cancelada por ter todos os itens removidos.</p>
+                      </div>
+                    )}
 
                     <div>
-                      <p className="text-sm font-semibold text-dark mb-3">Itens que foram consignados:</p>
+                      <p className="text-sm font-semibold text-dark mb-3">{selectedSaleForInfo.status === 'cancelada' && selectedSaleForInfo.forma_pagamento !== 'consignado' ? 'Itens que constavam na venda:' : 'Itens que foram consignados:'}</p>
                       {selectedSaleForInfo.resumo_original ? (
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {(() => {
