@@ -762,10 +762,12 @@ export default function LotesManagement() {
                           {lote.data_recebimento && (
                             <p className="text-xs text-blue-600">Pagamento: {formatDate(lote.data_recebimento)}</p>
                           )}
+                          <p className="text-xs text-gray-600">Qtde Produtos: <span className="font-semibold text-dark">{parseInt(lote.qtde_produtos || 0, 10)}</span></p>
                         </div>
                         <div className="text-right space-y-1">
                           <p className="text-xs text-gray-600">Total: <span className="font-semibold text-dark">{formatCurrency(lote.valor_total || 0)}</span></p>
                           <p className="text-xs text-gray-600">Vendido: <span className="font-semibold text-green-600">{formatCurrency(lote.valor_vendido || 0)}</span></p>
+                          <p className="text-xs text-gray-600">Qtde Vendida: <span className="font-semibold text-green-600">{parseInt(lote.qtde_vendida || 0, 10)}</span></p>
                         </div>
                       </div>
                       {lote.status === 'fechado' && !lote.data_finalizacao && (

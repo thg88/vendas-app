@@ -18,14 +18,14 @@ export const getAllLotes = async (req, res) => {
       
       // Buscar valor total dos produtos no lote (baseado no estoque original)
       const totalResult = await query(
-        'SELECT SUM(preco * estoque_original) as valor_total FROM produtos WHERE lote_id = $1',
+        'SELECT SUM(preco * estoque_original) as valor_total, SUM(estoque_original) as qtde_produtos FROM produtos WHERE lote_id = $1',
         [lote.id]
       );
       const totalData = totalResult.rows ? totalResult.rows[0] : totalResult[0];
 
       // Buscar valor vendido
       const vendidoResult = await query(
-        `SELECT SUM(iv.subtotal) as valor_vendido FROM itens_venda iv
+        `SELECT SUM(iv.subtotal) as valor_vendido, SUM(iv.quantidade) as qtde_vendida FROM itens_venda iv
          JOIN produtos p ON iv.produto_id = p.id
          WHERE p.lote_id = $1`,
         [lote.id]
@@ -35,7 +35,9 @@ export const getAllLotes = async (req, res) => {
       lotesComDados.push({
         ...lote,
         valor_total: totalData?.valor_total || 0,
-        valor_vendido: vendidoData?.valor_vendido || 0
+        qtde_produtos: totalData?.qtde_produtos || 0,
+        valor_vendido: vendidoData?.valor_vendido || 0,
+        qtde_vendida: vendidoData?.qtde_vendida || 0
       });
     }
 
