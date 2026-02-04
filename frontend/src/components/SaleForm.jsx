@@ -23,6 +23,101 @@ function Modal({ isOpen, onClose, title, children }) {
   );
 }
 
+// Client Selector Component
+function ClientSelector({ clients, selectedClientId, onSelectClient }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const selectedClient = selectedClientId ? clients.find(c => c.id == selectedClientId) : null;
+
+  // Fechar dropdown quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filtrar clientes baseado no termo de busca
+  const filteredClients = searchTerm.trim() === ''
+    ? clients
+    : clients.filter(c =>
+        c.nome.toLowerCase().startsWith(searchTerm.toLowerCase())
+      );
+
+  const handleSelectClient = (clientId) => {
+    onSelectClient(clientId);
+    setSearchTerm('');
+    setShowDropdown(false);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setShowDropdown(true);
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      {selectedClient ? (
+        <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between">
+          <span className="text-dark">{selectedClient.nome}</span>
+          <button
+            type="button"
+            onClick={() => {
+              onSelectClient('');
+              setSearchTerm('');
+              setShowDropdown(false);
+            }}
+            className="text-gray-500 hover:text-dark transition"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      ) : (
+        <>
+          <input
+            type="text"
+            placeholder="Buscar cliente por nome..."
+            value={searchTerm}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            onFocus={() => setShowDropdown(true)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+
+          {showDropdown && filteredClients.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              {filteredClients.map(client => (
+                <button
+                  key={client.id}
+                  type="button"
+                  onClick={() => handleSelectClient(client.id)}
+                  className="w-full text-left px-4 py-3 hover:bg-primary/10 transition border-b border-gray-100 last:border-b-0"
+                >
+                  <div>
+                    <p className="font-semibold text-dark">{client.nome}</p>
+                    <p className="text-sm text-gray-600">{client.telefone || 'Sem telefone'}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {showDropdown && searchTerm.trim() !== '' && filteredClients.length === 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+              Nenhum cliente encontrado com "{searchTerm}"
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // Product Selector Component
 function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
   const [selected, setSelected] = useState('');
@@ -455,20 +550,11 @@ export default function SaleForm() {
                     <label htmlFor="clientSelect" className="block text-sm font-semibold text-dark mb-2">
                       Selecione um cliente *
                     </label>
-                    <div className="flex gap-2">
-                      <select
-                        id="clientSelect"
-                        value={selectedClient}
-                        onChange={(e) => setSelectedClient(e.target.value)}
-                        required
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        <option value="">-- Selecionar Cliente --</option>
-                        {clients.map(c => (
-                          <option key={c.id} value={c.id}>{c.nome}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <ClientSelector
+                      clients={clients}
+                      selectedClientId={selectedClient}
+                      onSelectClient={setSelectedClient}
+                    />
                   </div>
                 </div>
               </div>
