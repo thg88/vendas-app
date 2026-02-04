@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { salesService, clientService, productService } from '../services/api';
 import { AlertCircle, CheckCircle, Plus, X } from 'lucide-react';
 
@@ -26,10 +26,25 @@ function Modal({ isOpen, onClose, title, children }) {
 // Product Selector Component
 function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
   const [selected, setSelected] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [stockError, setStockError] = useState('');
+  const dropdownRef = useRef(null);
 
   const selectedProduct = selected ? products.find(p => p.id == selected) : null;
+
+  // Fechar dropdown quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -38,12 +53,27 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
     }).format(value);
   };
   
+  // Filtrar produtos baseado no termo de busca
+  const filteredProducts = searchTerm.trim() === '' 
+    ? products 
+    : products.filter(p => 
+        p.nome.toLowerCase().startsWith(searchTerm.toLowerCase())
+      );
+  
   // Calcular estoque restante descontando produtos já adicionados
   const getAvailableStock = (product) => {
     if (!product) return 0;
     const alreadyAdded = selectedProducts.find(p => p.id === product.id);
     const quantityAdded = alreadyAdded ? alreadyAdded.quantity : 0;
     return (product.estoque || 0) - quantityAdded;
+  };
+
+  const handleSelectProduct = (productId) => {
+    setSelected(productId);
+    setSearchTerm('');
+    setShowDropdown(false);
+    setStockError('');
+    setQuantity(1);
   };
 
   const handleAdd = () => {
@@ -67,6 +97,8 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
 
       onAddProduct({ ...selectedProduct, quantity: parseInt(quantity) });
       setSelected('');
+      setSearchTerm('');
+      setShowDropdown(false);
       setQuantity(1);
       setStockError('');
     }
@@ -97,26 +129,74 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
     }
   };
 
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setShowDropdown(true);
+  };
+
   return (
     <div className="space-y-3">
       <div>
         <label className="block text-sm font-semibold text-dark mb-2">Produto</label>
-        <select
-          value={selected}
-          onChange={(e) => {
-            setSelected(e.target.value);
-            setStockError('');
-            setQuantity(1);
-          }}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">-- Selecionar Produto --</option>
-          {products.map(p => (
-            <option key={p.id} value={p.id}>
-              {p.nome} - {formatCurrency(p.preco)}
-            </option>
-          ))}
-        </select>
+        <div ref={dropdownRef} className="relative">
+          {selected && selectedProduct ? (
+            <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between">
+              <span className="text-dark">{selectedProduct.nome} - {formatCurrency(selectedProduct.preco)}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected('');
+                  setSearchTerm('');
+                  setShowDropdown(false);
+                }}
+                className="text-gray-500 hover:text-dark transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                type="text"
+                placeholder="Buscar produto por nome..."
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onFocus={() => setShowDropdown(true)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              
+              {showDropdown && filteredProducts.length > 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                  {filteredProducts.map(p => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSelectProduct(p.id)}
+                      className="w-full text-left px-4 py-3 hover:bg-primary/10 transition flex items-center justify-between border-b border-gray-100 last:border-b-0"
+                    >
+                      <div>
+                        <p className="font-semibold text-dark">{p.nome}</p>
+                        <p className="text-sm text-gray-600">{formatCurrency(p.preco)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500">Estoque</p>
+                        <p className={`font-bold ${p.estoque > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {p.estoque}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {showDropdown && searchTerm.trim() !== '' && filteredProducts.length === 0 && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500">
+                  Nenhum produto encontrado com "{searchTerm}"
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
       
       {selectedProduct && (
