@@ -118,17 +118,29 @@ export default function SalesQuery() {
     }
 
     if (selectedProductType) {
+      // Normalizar o tipo selecionado para comparação (lowercase, sem espaços/hífens)
+      const normalizedSelectedType = selectedProductType.toLowerCase().replace(/[\s-]/g, '');
+      
       // Filtrar vendas que têm itens do tipo selecionado
       filtered = filtered.filter(sale => {
-        return sale.itens && sale.itens.some(item => item.produto_tipo === selectedProductType);
+        return sale.itens && sale.itens.some(item => {
+          const normalizedItemType = (item.produto_tipo || '').toLowerCase().replace(/[\s-]/g, '');
+          return normalizedItemType === normalizedSelectedType;
+        });
       });
       
       // Filtrar também os itens dentro de cada venda para mostrar apenas do tipo selecionado
       filtered = filtered.map(sale => ({
         ...sale,
-        itens: sale.itens.filter(item => item.produto_tipo === selectedProductType),
+        itens: sale.itens.filter(item => {
+          const normalizedItemType = (item.produto_tipo || '').toLowerCase().replace(/[\s-]/g, '');
+          return normalizedItemType === normalizedSelectedType;
+        }),
         valor_total: sale.itens
-          .filter(item => item.produto_tipo === selectedProductType)
+          .filter(item => {
+            const normalizedItemType = (item.produto_tipo || '').toLowerCase().replace(/[\s-]/g, '');
+            return normalizedItemType === normalizedSelectedType;
+          })
           .reduce((sum, item) => sum + item.subtotal, 0)
       }));
     }
