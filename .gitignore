@@ -47,3 +47,7 @@ temp/
 
 # Generated files
 .cache/
+
+# Security files
+SECURITY-FIX-README.md
+supabase-security-fix.sql
