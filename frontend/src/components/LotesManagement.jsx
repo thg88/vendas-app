@@ -18,7 +18,9 @@ export default function LotesManagement() {
     data_recebimento: '',
     tipo: '',
     observacoes: '',
-    numero_lote_display: ''
+    numero_lote_display: '',
+    modalidade: 'consignado',
+    custo_lote: ''
   });
   const [productData, setProductData] = useState({
     nome: '',
@@ -69,12 +71,14 @@ export default function LotesManagement() {
       const response = await lotesService.create({
         data_recebimento: formData.data_recebimento,
         tipo: formData.tipo,
-        observacoes: formData.observacoes
+        observacoes: formData.observacoes,
+        modalidade: formData.modalidade,
+        custo_lote: formData.modalidade === 'custo' ? parseFloat(formData.custo_lote) : null
       });
       setSuccess('Lote criado com sucesso');
       setLotes([response.data, ...lotes]);
       setLoteAberto(response.data);
-      setFormData({ data_recebimento: '', tipo: '', observacoes: '', numero_lote_display: '' });
+      setFormData({ data_recebimento: '', tipo: '', observacoes: '', numero_lote_display: '', modalidade: 'consignado', custo_lote: '' });
       setShowForm(false);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -340,14 +344,13 @@ export default function LotesManagement() {
               </div>
               <div>
                 <label htmlFor="data_recebimento" className="block text-sm font-semibold text-dark mb-2">
-                  Data para Pagamento *
+                  Data para Pagamento <span className="font-normal text-gray-400">(opcional)</span>
                 </label>
                 <input
                   id="data_recebimento"
                   type="date"
                   value={formData.data_recebimento}
                   onChange={(e) => setFormData({ ...formData, data_recebimento: e.target.value })}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -367,6 +370,55 @@ export default function LotesManagement() {
                   <option value="Semi-joias">Semi-joias</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-dark mb-2">
+                  Modalidade do Lote *
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, modalidade: 'consignado', custo_lote: '' })}
+                    className={`px-4 py-3 rounded-lg border-2 font-semibold text-sm transition text-left ${
+                      formData.modalidade === 'consignado'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <p className="font-bold">Consignado</p>
+                    <p className="text-xs font-normal mt-0.5 opacity-80">Comissão sobre as vendas</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, modalidade: 'custo' })}
+                    className={`px-4 py-3 rounded-lg border-2 font-semibold text-sm transition text-left ${
+                      formData.modalidade === 'custo'
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
+                    }`}
+                  >
+                    <p className="font-bold">Custo</p>
+                    <p className="text-xs font-normal mt-0.5 opacity-80">Produtos comprados</p>
+                  </button>
+                </div>
+              </div>
+              {formData.modalidade === 'custo' && (
+                <div>
+                  <label htmlFor="custo_lote" className="block text-sm font-semibold text-dark mb-2">
+                    Custo do Lote (R$) *
+                  </label>
+                  <input
+                    id="custo_lote"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.custo_lote}
+                    onChange={(e) => setFormData({ ...formData, custo_lote: e.target.value })}
+                    required
+                    placeholder="0,00"
+                    className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                  />
+                </div>
+              )}
               <div>
                 <label htmlFor="observacoes" className="block text-sm font-semibold text-dark mb-2">
                   Observações
@@ -422,13 +474,25 @@ export default function LotesManagement() {
                   <div className="text-right">
                     <div className="mb-2">
                       <p className="text-sm text-gray-600">Pagamento</p>
-                      <p className="font-semibold text-blue-600">{formatDate(loteAberto.data_recebimento)}</p>
+                      <p className="font-semibold text-blue-600">{loteAberto.data_recebimento ? formatDate(loteAberto.data_recebimento) : 'Não definido'}</p>
                     </div>
                     {loteAberto.tipo && (
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${loteAberto.tipo === 'Roupas' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
                           {loteAberto.tipo === 'Semi-joias' ? 'Joias' : loteAberto.tipo}
                         </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          loteAberto.modalidade === 'custo'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {loteAberto.modalidade === 'custo' ? 'Custo' : 'Consignado'}
+                        </span>
+                      </div>
+                    )}
+                    {loteAberto.modalidade === 'custo' && loteAberto.custo_lote && (
+                      <div className="mt-1">
+                        <p className="text-xs text-orange-700 font-semibold">Investimento: {parseFloat(loteAberto.custo_lote).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                       </div>
                     )}
                   </div>
@@ -756,12 +820,11 @@ export default function LotesManagement() {
                           {lote.status === 'aberto' ? 'Aberto' : lote.data_finalizacao ? 'Finalizado' : 'Em consumo'}
                         </span>
                       </div>
+                      <p className="text-xs text-gray-600 mb-2">Investimento: <span className="font-semibold text-dark">{lote.modalidade === 'custo' && lote.custo_lote ? parseFloat(lote.custo_lote).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Consignado'}</span></p>
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
                           <p className="text-xs text-gray-500">Recebimento: {formatDate(lote.data_abertura)}</p>
-                          {lote.data_recebimento && (
-                            <p className="text-xs text-blue-600">Pagamento: {formatDate(lote.data_recebimento)}</p>
-                          )}
+                          <p className="text-xs text-blue-600">Pagamento: {lote.data_recebimento ? formatDate(lote.data_recebimento) : 'Não definido'}</p>
                           <p className="text-xs text-gray-600">Qtde Produtos: <span className="font-semibold text-dark">{parseInt(lote.qtde_produtos || 0, 10)}</span></p>
                         </div>
                         <div className="text-right space-y-1">

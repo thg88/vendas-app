@@ -126,14 +126,20 @@ export const getLoteAberto = async (req, res) => {
 
 // Criar novo lote
 export const createLote = async (req, res) => {
-  const { data_recebimento, tipo, observacoes } = req.body;
-
-  if (!data_recebimento) {
-    return res.status(400).json({ message: 'Data de recebimento é obrigatória' });
-  }
+  const { data_recebimento, tipo, observacoes, modalidade, custo_lote } = req.body;
 
   if (!tipo) {
     return res.status(400).json({ message: 'Tipo de lote é obrigatório' });
+  }
+
+  const modalidadeFinal = modalidade || 'consignado';
+
+  if (!['consignado', 'custo'].includes(modalidadeFinal)) {
+    return res.status(400).json({ message: 'Modalidade inválida. Use "consignado" ou "custo".' });
+  }
+
+  if (modalidadeFinal === 'custo' && (custo_lote === undefined || custo_lote === null || custo_lote === '')) {
+    return res.status(400).json({ message: 'Informe o custo do lote para lotes do tipo "custo".' });
   }
 
   try {
@@ -152,8 +158,8 @@ export const createLote = async (req, res) => {
 
     // Criar novo lote
     const insertResult = await query(
-      'INSERT INTO lotes (numero_lote, status, tipo, data_recebimento, observacoes) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [proximoNumero, 'aberto', tipo, data_recebimento, observacoes || null]
+      'INSERT INTO lotes (numero_lote, status, tipo, data_recebimento, observacoes, modalidade, custo_lote) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [proximoNumero, 'aberto', tipo, data_recebimento || null, observacoes || null, modalidadeFinal, modalidadeFinal === 'custo' ? parseFloat(custo_lote) : null]
     );
     
     const lote = insertResult.rows ? insertResult.rows[0] : insertResult[0];

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { salesService, clientService, paymentService } from '../services/api';
+import { useState, useEffect, useRef } from 'react';
+import { salesService, clientService, paymentService, lotesService } from '../services/api';
 import { ChevronDown, AlertCircle, X, Trash2, Edit2, Info } from 'lucide-react';
 
 export default function SalesQuery() {
@@ -28,24 +28,48 @@ export default function SalesQuery() {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [selectedSaleForInfo, setSelectedSaleForInfo] = useState(null);
   const [expandFilters, setExpandFilters] = useState(false);
+  const [lotes, setLotes] = useState([]);
+  const [selectedLotes, setSelectedLotes] = useState([]);
+  const [showLoteDropdown, setShowLoteDropdown] = useState(false);
+  const loteDropdownRef = useRef(null);
 
   useEffect(() => {
     loadSales();
     loadClients();
+    loadLotes();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (loteDropdownRef.current && !loteDropdownRef.current.contains(e.target)) {
+        setShowLoteDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const loadLotes = async () => {
+    try {
+      const response = await lotesService.getAll();
+      setLotes(response.data);
+    } catch (err) {
+      console.error('Erro ao carregar lotes', err);
+    }
+  };
 
   useEffect(() => {
     // Quando as vendas são carregadas, calcular os totais automaticamente
     if (sales.length > 0) {
-      const total = sales.reduce((sum, sale) => sum + sale.valor_total, 0);
+      const total = sales.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
       setTotalSalesAmount(total);
       
       // Calcular total recebido (vendas à vista + parcelas pagas das vendas à prazo)
       const totalRecebidoCalc = sales.reduce((sum, sale) => {
         if (sale.forma_pagamento === 'vista') {
-          return sum + sale.valor_total;
+          return sum + (parseFloat(sale.valor_total) || 0);
         } else if (sale.forma_pagamento === 'prazo' && sale.paymentInfo) {
-          return sum + (sale.paymentInfo.total_pago || 0);
+          return sum + (parseFloat(sale.paymentInfo.total_pago) || 0);
         }
         return sum;
       }, 0);
@@ -117,6 +141,10 @@ export default function SalesQuery() {
       filtered = filtered.filter(sale => sale.forma_pagamento === selectedPaymentMethod);
     }
 
+    if (selectedLotes.length > 0) {
+      filtered = filtered.filter(sale => selectedLotes.includes(String(sale.lote_id)));
+    }
+
     if (selectedProductType) {
       // Normalizar o tipo selecionado para comparação (lowercase, sem espaços/hífens)
       const normalizedSelectedType = selectedProductType.toLowerCase().replace(/[\s-]/g, '');
@@ -155,15 +183,15 @@ export default function SalesQuery() {
     setFilteredSales(filtered);
     
     // Calcular total de vendas filtradas
-    const total = filtered.reduce((sum, sale) => sum + sale.valor_total, 0);
+    const total = filtered.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
     setTotalSalesAmount(total);
     
     // Calcular total recebido (vendas à vista + parcelas pagas das vendas à prazo)
     const totalRecebidoCalc = filtered.reduce((sum, sale) => {
       if (sale.forma_pagamento === 'vista') {
-        return sum + sale.valor_total;
+        return sum + (parseFloat(sale.valor_total) || 0);
       } else if (sale.forma_pagamento === 'prazo' && sale.paymentInfo) {
-        return sum + (sale.paymentInfo.total_pago || 0);
+        return sum + (parseFloat(sale.paymentInfo.total_pago) || 0);
       }
       return sum;
     }, 0);
@@ -176,18 +204,20 @@ export default function SalesQuery() {
     setSelectedClientId('');
     setSelectedPaymentMethod('');
     setSelectedProductType('');
+    setSelectedLotes([]);
+    setShowLoteDropdown(false);
     setFilteredSales(sales);
     
     // Calcular total de todas as vendas
-    const total = sales.reduce((sum, sale) => sum + sale.valor_total, 0);
+    const total = sales.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
     setTotalSalesAmount(total);
     
     // Calcular total recebido (vendas à vista + parcelas pagas das vendas à prazo)
     const totalRecebidoCalc = sales.reduce((sum, sale) => {
       if (sale.forma_pagamento === 'vista') {
-        return sum + sale.valor_total;
+        return sum + (parseFloat(sale.valor_total) || 0);
       } else if (sale.forma_pagamento === 'prazo' && sale.paymentInfo) {
-        return sum + (sale.paymentInfo.total_pago || 0);
+        return sum + (parseFloat(sale.paymentInfo.total_pago) || 0);
       }
       return sum;
     }, 0);
@@ -492,6 +522,55 @@ export default function SalesQuery() {
                 <option value="Roupas">Roupas</option>
                 <option value="Semi joias">Semi joias</option>
               </select>
+            </div>
+
+            <div className="relative" ref={loteDropdownRef}>
+              <label className="block text-sm font-semibold text-dark mb-2">
+                Lotes {selectedLotes.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded-full">{selectedLotes.length}</span>}
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowLoteDropdown(!showLoteDropdown)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-left text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white flex justify-between items-center"
+              >
+                <span className="text-gray-600 truncate">
+                  {selectedLotes.length === 0
+                    ? '-- Todos os lotes --'
+                    : selectedLotes.length === 1
+                    ? lotes.find(l => String(l.id) === selectedLotes[0])?.numero_lote || '1 lote'
+                    : `${selectedLotes.length} lotes selecionados`}
+                </span>
+                <ChevronDown size={16} className={`ml-2 flex-shrink-0 transition-transform ${showLoteDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              {showLoteDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {lotes.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-500">Nenhum lote encontrado</p>
+                  ) : (
+                    lotes.map(lote => (
+                      <label key={lote.id} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedLotes.includes(String(lote.id))}
+                          onChange={(e) => {
+                            const id = String(lote.id);
+                            setSelectedLotes(prev =>
+                              e.target.checked ? [...prev, id] : prev.filter(x => x !== id)
+                            );
+                          }}
+                          className="accent-primary"
+                        />
+                        <span className="text-sm text-dark">
+                          {lote.numero_lote} &mdash; {lote.tipo === 'Semi-joias' ? 'Joias' : lote.tipo}
+                          <span className={`ml-1 text-xs ${lote.status === 'aberto' ? 'text-green-600' : lote.status === 'finalizado' ? 'text-gray-500' : 'text-blue-600'}`}>
+                            ({lote.status === 'fechado' ? 'Em consumo' : lote.status})
+                          </span>
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

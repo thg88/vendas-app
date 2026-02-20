@@ -22,7 +22,7 @@ export const getAllSales = async (req, res) => {
     for (let i = 0; i < vendas.length; i++) {
       const venda = vendas[i];
       const itensQuery = `
-        SELECT iv.*, p.nome as produto_nome, p.tipo as produto_tipo, l.status as lote_status
+        SELECT iv.*, p.nome as produto_nome, p.tipo as produto_tipo, p.lote_id, l.status as lote_status, l.modalidade as lote_modalidade, l.numero_lote
         FROM itens_venda iv
         JOIN produtos p ON iv.produto_id = p.id
         LEFT JOIN lotes l ON p.lote_id = l.id
@@ -36,6 +36,9 @@ export const getAllSales = async (req, res) => {
         vendasComItens[i].itens = itens;
         vendasComItens[i].tipo = itens[0].produto_tipo;
         vendasComItens[i].lote_status = itens[0].lote_status;
+        vendasComItens[i].lote_modalidade = itens[0].lote_modalidade;
+        vendasComItens[i].lote_id = itens[0].lote_id;
+        vendasComItens[i].lote_numero = itens[0].numero_lote;
       }
     }
 

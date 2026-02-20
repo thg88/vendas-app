@@ -130,8 +130,12 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
   const [totalReceivable, setTotalReceivable] = useState(0);
   const [salesTodayCount, setSalesTodayCount] = useState(0);
   const [salesTodayValue, setSalesTodayValue] = useState(0);
+  const [salesTodayConsignadoValue, setSalesTodayConsignadoValue] = useState(0);
+  const [salesTodayCustoValue, setSalesTodayCustoValue] = useState(0);
   const [totalMonthValue, setTotalMonthValue] = useState(0);
   const [salesJoiasValue, setSalesJoiasValue] = useState(0);
+  const [salesJoiasConsignadoValue, setSalesJoiasConsignadoValue] = useState(0);
+  const [salesJoiasCustoValue, setSalesJoiasCustoValue] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -149,14 +153,14 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
       const currentMonth = today.getMonth() + 1;
       const currentYear = today.getFullYear();
 
-      // Filtrar vendas de lotes fechados tipo Roupas (independente de data)
+      // Filtrar vendas de lotes tipo Roupas com status fechado
       const salesToday = allSales.filter(sale => {
-        return sale.lote_status === 'fechado' && sale.tipo === 'Roupas';
+        return sale.tipo === 'Roupas' && sale.lote_status === 'fechado';
       });
 
-      // Filtrar vendas de lotes fechados tipo Semi-Joias (independente de data)
+      // Filtrar vendas de lotes tipo Semi-Joias com status fechado
       const salesJoias = allSales.filter(sale => {
-        return sale.lote_status === 'fechado' && sale.tipo === 'Semi-joias';
+        return sale.tipo === 'Semi-joias' && sale.lote_status === 'fechado';
       });
 
       // Filtrar vendas do mês atual
@@ -167,13 +171,21 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
       });
 
       // Calcular totais
-      const todayTotal = salesToday.reduce((sum, sale) => sum + sale.valor_total, 0);
-      const joiasTotal = salesJoias.reduce((sum, sale) => sum + sale.valor_total, 0);
-      const monthTotal = salesMonth.reduce((sum, sale) => sum + sale.valor_total, 0);
+      const todayTotal = salesToday.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const todayConsignadoTotal = salesToday.filter(s => s.lote_modalidade !== 'custo').reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const todayCustoTotal = salesToday.filter(s => s.lote_modalidade === 'custo').reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const joiasTotal = salesJoias.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const joiasConsignadoTotal = salesJoias.filter(s => s.lote_modalidade !== 'custo').reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const joiasCustoTotal = salesJoias.filter(s => s.lote_modalidade === 'custo').reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
+      const monthTotal = salesMonth.reduce((sum, sale) => sum + (parseFloat(sale.valor_total) || 0), 0);
 
       setSalesTodayCount(salesToday.length);
       setSalesTodayValue(todayTotal);
+      setSalesTodayConsignadoValue(todayConsignadoTotal);
+      setSalesTodayCustoValue(todayCustoTotal);
       setSalesJoiasValue(joiasTotal);
+      setSalesJoiasConsignadoValue(joiasConsignadoTotal);
+      setSalesJoiasCustoValue(joiasCustoTotal);
       setTotalMonthValue(monthTotal);
     } catch (err) {
       console.error('Erro ao carregar estatísticas de vendas', err);
@@ -314,7 +326,7 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
           <p className="text-xs text-gray-500 mt-1">Vendas Roupas</p>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm text-center">
-          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommission(salesTodayValue))}</p>
+          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommission(salesTodayConsignadoValue) + salesTodayCustoValue)}</p>
           <p className="text-xs text-gray-500 mt-1">Comissão Roupas</p>
         </div>
       </div>
@@ -326,7 +338,7 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
           <p className="text-xs text-gray-500 mt-1">Vendas Semi-Joias</p>
         </div>
         <div className="bg-white rounded-lg p-3 shadow-sm text-center">
-          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommissionJoias(salesJoiasValue))}</p>
+          <p className="text-xl font-bold text-blue-500">{formatCurrency(calculateCommissionJoias(salesJoiasConsignadoValue) + salesJoiasCustoValue)}</p>
           <p className="text-xs text-gray-500 mt-1">Comissão Semi-Joias</p>
         </div>
       </div>
