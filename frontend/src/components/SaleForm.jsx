@@ -273,6 +273,9 @@ function ProductSelector({ products, onAddProduct, selectedProducts = [] }) {
                         <p className="font-semibold text-dark">{p.nome}</p>
                         <p className="text-sm text-gray-600">{formatCurrency(p.preco)}</p>
                       </div>
+                      {p.lote_modalidade === 'custo' && (
+                        <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-xs font-bold rounded">Meu</span>
+                      )}
                       <div className="text-right">
                         <p className="text-xs text-gray-500">Estoque</p>
                         <p className={`font-bold ${p.estoque > 0 ? 'text-green-600' : 'text-red-600'}`}>

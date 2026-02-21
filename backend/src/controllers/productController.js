@@ -3,7 +3,7 @@ import { query } from '../database.js';
 export const getAllProducts = async (req, res) => {
   try {
     const result = await query(`
-      SELECT p.*, l.numero_lote, l.status as lote_status
+      SELECT p.*, l.numero_lote, l.status as lote_status, l.modalidade as lote_modalidade
       FROM produtos p 
       LEFT JOIN lotes l ON p.lote_id = l.id 
       ORDER BY p.nome
@@ -21,7 +21,7 @@ export const getProductById = async (req, res) => {
 
   try {
     const result = await query(`
-      SELECT p.*, l.numero_lote, l.status as lote_status
+      SELECT p.*, l.numero_lote, l.status as lote_status, l.modalidade as lote_modalidade
       FROM produtos p 
       LEFT JOIN lotes l ON p.lote_id = l.id 
       WHERE p.id = $1
