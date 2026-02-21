@@ -73,7 +73,7 @@ export default function LotesManagement() {
         tipo: formData.tipo,
         observacoes: formData.observacoes,
         modalidade: formData.modalidade,
-        custo_lote: formData.modalidade === 'custo' ? parseFloat(formData.custo_lote) : null
+        custo_lote: formData.modalidade === 'custo' ? parseFloat(formData.custo_lote.replace(/\./g, '').replace(',', '.')) : null
       });
       setSuccess('Lote criado com sucesso');
       setLotes([response.data, ...lotes]);
@@ -404,19 +404,30 @@ export default function LotesManagement() {
               {formData.modalidade === 'custo' && (
                 <div>
                   <label htmlFor="custo_lote" className="block text-sm font-semibold text-dark mb-2">
-                    Custo do Lote (R$) *
+                    Custo do Lote *
                   </label>
-                  <input
-                    id="custo_lote"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.custo_lote}
-                    onChange={(e) => setFormData({ ...formData, custo_lote: e.target.value })}
-                    required
-                    placeholder="0,00"
-                    className="w-full px-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">R$</span>
+                    <input
+                      id="custo_lote"
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.custo_lote}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        if (digits === '') {
+                          setFormData({ ...formData, custo_lote: '' });
+                          return;
+                        }
+                        const cents = parseInt(digits, 10);
+                        const formatted = (cents / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        setFormData({ ...formData, custo_lote: formatted });
+                      }}
+                      required
+                      placeholder="0,00"
+                      className="w-full pl-10 pr-4 py-2 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    />
+                  </div>
                 </div>
               )}
               <div>
@@ -466,18 +477,14 @@ export default function LotesManagement() {
                       <h3 className="text-2xl font-bold text-dark">{loteAberto.numero_lote}</h3>
                       <p className="text-green-700 text-sm mb-2">Lote Aberto</p>
                       <div>
-                        <p className="text-xs text-gray-600">Recebimento</p>
+                        <p className="text-xs text-gray-600">Abertura</p>
                         <p className="text-sm font-semibold">{formatDate(loteAberto.data_abertura)}</p>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="mb-2">
-                      <p className="text-sm text-gray-600">Pagamento</p>
-                      <p className="font-semibold text-blue-600">{loteAberto.data_recebimento ? formatDate(loteAberto.data_recebimento) : 'Não definido'}</p>
-                    </div>
+                  <div className="text-right flex flex-col items-end gap-2">
                     {loteAberto.tipo && (
-                      <div className="mt-1 flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1 justify-end">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${loteAberto.tipo === 'Roupas' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
                           {loteAberto.tipo === 'Semi-joias' ? 'Joias' : loteAberto.tipo}
                         </span>
@@ -490,8 +497,12 @@ export default function LotesManagement() {
                         </span>
                       </div>
                     )}
+                    <div>
+                      <p className="text-sm text-gray-600">Pagamento</p>
+                      <p className="font-semibold text-blue-600">{loteAberto.data_recebimento ? formatDate(loteAberto.data_recebimento) : 'Não definido'}</p>
+                    </div>
                     {loteAberto.modalidade === 'custo' && loteAberto.custo_lote && (
-                      <div className="mt-1">
+                      <div>
                         <p className="text-xs text-orange-700 font-semibold">Investimento: {parseFloat(loteAberto.custo_lote).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                       </div>
                     )}
@@ -820,11 +831,11 @@ export default function LotesManagement() {
                           {lote.status === 'aberto' ? 'Aberto' : lote.data_finalizacao ? 'Finalizado' : 'Em consumo'}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600 mb-2">Investimento: <span className="font-semibold text-dark">{lote.modalidade === 'custo' && lote.custo_lote ? parseFloat(lote.custo_lote).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Consignado'}</span></p>
+                      <p className="text-xs text-gray-600 mb-2">Investimento: <span className={`font-semibold ${lote.modalidade === 'custo' && lote.custo_lote ? 'text-orange-600' : 'text-dark'}`}>{lote.modalidade === 'custo' && lote.custo_lote ? parseFloat(lote.custo_lote).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Consignado'}</span></p>
                       <div className="flex items-start justify-between">
                         <div className="space-y-1">
-                          <p className="text-xs text-gray-500">Recebimento: {formatDate(lote.data_abertura)}</p>
-                          <p className="text-xs text-blue-600">Pagamento: {lote.data_recebimento ? formatDate(lote.data_recebimento) : 'Não definido'}</p>
+                          <p className="text-xs text-gray-500">Abertura: {formatDate(lote.data_abertura)}</p>
+                          <p className="text-xs text-blue-600">Receber até: {lote.data_recebimento ? formatDate(lote.data_recebimento) : 'Não definido'}</p>
                           <p className="text-xs text-gray-600">Qtde Produtos: <span className="font-semibold text-dark">{parseInt(lote.qtde_produtos || 0, 10)}</span></p>
                         </div>
                         <div className="text-right space-y-1">
