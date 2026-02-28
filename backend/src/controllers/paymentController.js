@@ -59,7 +59,12 @@ export const registerPayment = async (req, res) => {
     });
   } catch (err) {
     console.error('Erro ao registrar pagamento:', err);
-    return res.status(500).json({ message: 'Erro ao registrar pagamento' });
+    // Temporário: expor detalhe do erro para diagnóstico em produção — remover após identificar a causa
+    return res.status(500).json({
+      message: 'Erro ao registrar pagamento',
+      detail: err.message,
+      code: err.code
+    });
   }
 };
 

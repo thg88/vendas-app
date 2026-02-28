@@ -343,7 +343,9 @@ export default function SalesQuery() {
           tipo_pagamento: paymentType === 'total' ? 'Total' : 'Parcial'
         });
       } catch (err) {
-        setError(err.response?.data?.message || 'Erro ao registrar pagamento');
+        const msg = err.response?.data?.message || 'Erro ao registrar pagamento';
+        const detail = err.response?.data?.detail ? ` [${err.response.data.detail}]` : '';
+        setError(msg + detail);
         setLoading(false);
         return;
       }
