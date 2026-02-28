@@ -313,32 +313,40 @@ export default function SalesQuery() {
 
       let valor;
       if (paymentType === 'total') {
-        valor = salePayments && typeof salePayments.saldo_pendente === 'number'
-          ? salePayments.saldo_pendente
-          : selectedSaleForPayment.valor_total;
+        // saldo_pendente do backend já vem como número; usar parseFloat como garantia
+        const saldoNum = salePayments && salePayments.saldo_pendente != null
+          ? parseFloat(salePayments.saldo_pendente)
+          : parseFloat(selectedSaleForPayment.valor_total);
+        valor = isNaN(saldoNum) ? parseFloat(selectedSaleForPayment.valor_total) : saldoNum;
       } else if (paymentType === 'partial') {
         valor = parseFloat(partialAmount);
       }
 
-      if (!valor || valor <= 0) {
+      if (!valor || isNaN(valor) || valor <= 0) {
         setError('Insira um valor válido');
         setLoading(false);
         return;
       }
 
       // client-side check for partial payments exceeding pending balance
-      if (paymentType === 'partial' && salePayments && valor > salePayments.saldo_pendente) {
+      if (paymentType === 'partial' && salePayments && valor > parseFloat(salePayments.saldo_pendente) + 0.001) {
         setError('Valor de pagamento excede o saldo pendente');
         setLoading(false);
         return;
       }
 
       // Registrar pagamento
-      await paymentService.register({
-        venda_id: selectedSaleForPayment.id,
-        valor_pago: valor,
-        tipo_pagamento: paymentType === 'total' ? 'Total' : 'Parcial'
-      });
+      try {
+        await paymentService.register({
+          venda_id: selectedSaleForPayment.id,
+          valor_pago: valor,
+          tipo_pagamento: paymentType === 'total' ? 'Total' : 'Parcial'
+        });
+      } catch (err) {
+        setError(err.response?.data?.message || 'Erro ao registrar pagamento');
+        setLoading(false);
+        return;
+      }
 
       // Atualizar forma_pagamento dependendo do tipo
       // Para vendas prazo com pagamento total, mantém como 'prazo' (só muda a cor do valor)
@@ -357,7 +365,12 @@ export default function SalesQuery() {
       }
       // Sempre chamar updatePaymentMethod para atualizar status quando o pagamento é total
       if (novaFormaPagamento !== selectedSaleForPayment.forma_pagamento || paymentType === 'total') {
-        await salesService.updatePaymentMethod(selectedSaleForPayment.id, novaFormaPagamento);
+        try {
+          await salesService.updatePaymentMethod(selectedSaleForPayment.id, novaFormaPagamento);
+        } catch (err) {
+          // Pagamento já foi registrado; falha no updatePaymentMethod não impede sucesso
+          console.warn('Aviso: falha ao atualizar forma de pagamento:', err.response?.data?.message || err.message);
+        }
       }
 
       setSuccess('Pagamento registrado com sucesso!');

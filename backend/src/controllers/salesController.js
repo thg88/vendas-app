@@ -338,8 +338,10 @@ export const updatePaymentMethod = async (req, res) => {
       [vendaId]
     );
     const paymentData = paymentResult.rows ? paymentResult.rows[0] : paymentResult[0];
-    const totalPago = paymentData?.total_pago || 0;
-    const estaQuitada = totalPago >= venda.valor_total;
+    // pg retorna DECIMAL como string — usar parseFloat para comparação numérica correta
+    const totalPago = parseFloat(paymentData?.total_pago) || 0;
+    const valorTotalNum = parseFloat(venda.valor_total);
+    const estaQuitada = totalPago >= valorTotalNum - 0.001;
 
     // Define o status:
     // - Se à vista, sempre finalizada

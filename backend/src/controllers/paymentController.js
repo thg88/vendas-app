@@ -22,10 +22,17 @@ export const registerPayment = async (req, res) => {
       [venda_id]
     );
     const paymentData = paymentResult.rows ? paymentResult.rows[0] : paymentResult[0];
-    const totalPago = paymentData?.total_pago || 0;
-    const saldoPendente = venda.valor_total - totalPago;
+    // pg retorna colunas DECIMAL como strings — usar parseFloat explicitamente
+    const totalPago = parseFloat(paymentData?.total_pago) || 0;
+    const valorTotalNum = parseFloat(venda.valor_total);
+    const valorPagoNum = parseFloat(valor_pago);
+    const saldoPendente = parseFloat((valorTotalNum - totalPago).toFixed(2));
 
-    if (valor_pago > saldoPendente) {
+    if (isNaN(valorPagoNum) || valorPagoNum <= 0) {
+      return res.status(400).json({ message: 'Valor de pagamento inválido' });
+    }
+
+    if (valorPagoNum > saldoPendente + 0.001) {
       return res.status(400).json({
         message: `Valor de pagamento excede o saldo pendente. Saldo: R$ ${saldoPendente.toFixed(2)}`
       });
@@ -34,12 +41,12 @@ export const registerPayment = async (req, res) => {
     // Registrar o pagamento
     const insertResult = await query(
       'INSERT INTO pagamentos_venda (venda_id, valor_pago, tipo_pagamento) VALUES ($1, $2, $3) RETURNING id',
-      [venda_id, valor_pago, tipo_pagamento]
+      [venda_id, valorPagoNum, tipo_pagamento]
     );
     
     const insertedId = insertResult.rows ? insertResult.rows[0].id : insertResult[0].id;
-    const novoSaldo = saldoPendente - valor_pago;
-    const quitada = novoSaldo === 0 ? 1 : 0;
+    const novoSaldo = parseFloat((saldoPendente - valorPagoNum).toFixed(2));
+    const quitada = novoSaldo <= 0 ? 1 : 0;
 
     res.status(201).json({
       id: insertedId,
@@ -78,15 +85,17 @@ export const getPaymentsByVenda = async (req, res) => {
       return res.status(404).json({ message: 'Venda não encontrada' });
     }
 
-    const totalPago = pagamentos.reduce((sum, p) => sum + p.valor_pago, 0);
-    const saldoPendente = venda.valor_total - totalPago;
+    // pg retorna DECIMAL como string — usar parseFloat para evitar concatenação de strings no reduce
+    const totalPago = pagamentos.reduce((sum, p) => sum + parseFloat(p.valor_pago), 0);
+    const valorTotalNum = parseFloat(venda.valor_total);
+    const saldoPendente = parseFloat((valorTotalNum - totalPago).toFixed(2));
 
     res.json({
       venda_id,
-      valor_total: venda.valor_total,
-      total_pago: totalPago,
+      valor_total: valorTotalNum,
+      total_pago: parseFloat(totalPago.toFixed(2)),
       saldo_pendente: saldoPendente,
-      quitada: saldoPendente === 0,
+      quitada: saldoPendente <= 0,
       pagamentos
     });
   } catch (err) {
