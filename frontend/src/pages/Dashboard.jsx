@@ -196,8 +196,8 @@ function HomeContent({ menuItems, setActiveMenu, user }) {
     setLoading(true);
     try {
       const response = await salesService.getAll();
-      // Filtrar vendas a prazo ou consignado
-      const prazoSales = response.data.filter(sale => sale.forma_pagamento === 'prazo' || sale.forma_pagamento === 'consignado');
+      // Filtrar vendas a prazo
+      const prazoSales = response.data.filter(sale => sale.forma_pagamento === 'prazo');
       // Para cada venda a prazo/consignado, buscar resumo de pagamentos e usar o saldo_pendente
       const salesWithPending = await Promise.all(prazoSales.map(async (sale) => {
         try {

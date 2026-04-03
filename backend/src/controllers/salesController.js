@@ -225,6 +225,10 @@ export const deleteItemFromSale = async (req, res) => {
         'UPDATE vendas SET status = $1, valor_total = 0 WHERE id = $2',
         ['cancelada', item.venda_id]
       );
+      await query(
+        'DELETE FROM pagamentos_venda WHERE venda_id = $1',
+        [item.venda_id]
+      );
       return res.json({ message: 'Item removido, venda cancelada (sem itens) e estoque restaurado com sucesso' });
     }
 
