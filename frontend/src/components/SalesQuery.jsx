@@ -612,18 +612,18 @@ export default function SalesQuery() {
           <h3 className="text-lg font-bold text-dark mb-4">Total de Vendas</h3>
           <div className="flex justify-between items-start gap-2 mb-3">
             <div className="flex-1 text-center">
-              <span className="text-gray-600 font-semibold block mb-1 text-xs">Realizadas</span>
-              <span className="text-xl font-bold text-secondary">{formatCurrency(totalSalesAmount)}</span>
+              <span className="text-gray-600 font-semibold block mb-1">Realizadas</span>
+              <span className="text-2xl font-bold text-secondary">{formatCurrency(totalSalesAmount)}</span>
             </div>
             <div className="w-px bg-gray-200 self-stretch"></div>
             <div className="flex-1 text-center">
-              <span className="text-gray-600 font-semibold block mb-1 text-xs">Recebido</span>
-              <span className="text-xl font-bold text-green-600">{formatCurrency(totalRecebido)}</span>
+              <span className="text-gray-600 font-semibold block mb-1">Recebido</span>
+              <span className="text-2xl font-bold text-green-600">{formatCurrency(totalRecebido)}</span>
             </div>
           </div>
           <div className="border-t border-gray-200 pt-3 text-center">
-            <span className="text-gray-600 font-semibold block mb-1 text-xs">A Receber</span>
-            <span className="text-xl font-bold text-orange-500">{formatCurrency(totalSalesAmount - totalRecebido)}</span>
+            <span className="text-gray-600 font-semibold block mb-1">A Receber</span>
+            <span className="text-2xl font-bold text-orange-500">{formatCurrency(totalSalesAmount - totalRecebido)}</span>
           </div>
         </div>
 
@@ -647,8 +647,8 @@ export default function SalesQuery() {
                     className="w-full px-3 py-3 bg-gradient-to-r from-primary/5 to-secondary/5 hover:from-primary/10 hover:to-secondary/10 transition flex items-center justify-between gap-2"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-medium text-dark truncate">{sale.cliente_nome}</p>
-                      <p className="text-xs text-gray-600">{formatDate(sale.data_venda)}</p>
+                      <p className="text-sm sm:text-base font-medium text-dark truncate">{sale.cliente_nome}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">{formatDate(sale.data_venda)}</p>
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
@@ -662,7 +662,7 @@ export default function SalesQuery() {
                         const colorClass = isPartialPending ? 'text-red-600' : (isFullyPaid ? 'text-green-600' : (isCancelledConsignado ? 'text-gray-500' : 'text-primary'));
                         const displayValue = isPartialPending ? formatCurrency(sale.paymentInfo.saldo_pendente) : formatCurrency(sale.valor_total);
                         return (
-                          <span className={`font-bold text-sm sm:text-lg ${colorClass}`}>
+                          <span className={`font-bold text-base sm:text-xl ${colorClass}`}>
                             {displayValue}
                           </span>
                         );
