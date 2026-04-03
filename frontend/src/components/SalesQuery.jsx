@@ -610,7 +610,7 @@ export default function SalesQuery() {
         {/* Card de Total de Vendas */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <h3 className="text-lg font-bold text-dark mb-4">Total de Vendas</h3>
-          <div className="flex justify-between items-start gap-2">
+          <div className="flex justify-between items-start gap-2 mb-3">
             <div className="flex-1 text-center">
               <span className="text-gray-600 font-semibold block mb-1 text-xs">Realizadas</span>
               <span className="text-xl font-bold text-secondary">{formatCurrency(totalSalesAmount)}</span>
@@ -620,11 +620,10 @@ export default function SalesQuery() {
               <span className="text-gray-600 font-semibold block mb-1 text-xs">Recebido</span>
               <span className="text-xl font-bold text-green-600">{formatCurrency(totalRecebido)}</span>
             </div>
-            <div className="w-px bg-gray-200 self-stretch"></div>
-            <div className="flex-1 text-center">
-              <span className="text-gray-600 font-semibold block mb-1 text-xs">A Receber</span>
-              <span className="text-xl font-bold text-orange-500">{formatCurrency(totalSalesAmount - totalRecebido)}</span>
-            </div>
+          </div>
+          <div className="border-t border-gray-200 pt-3 text-center">
+            <span className="text-gray-600 font-semibold block mb-1 text-xs">A Receber</span>
+            <span className="text-xl font-bold text-orange-500">{formatCurrency(totalSalesAmount - totalRecebido)}</span>
           </div>
         </div>
 
