@@ -8,7 +8,7 @@ export default function SalesQuery() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState([]);
   const [selectedProductType, setSelectedProductType] = useState('');
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,9 @@ export default function SalesQuery() {
   const [lotes, setLotes] = useState([]);
   const [selectedLotes, setSelectedLotes] = useState([]);
   const [showLoteDropdown, setShowLoteDropdown] = useState(false);
+  const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
   const loteDropdownRef = useRef(null);
+  const paymentDropdownRef = useRef(null);
 
   useEffect(() => {
     loadSales();
@@ -43,6 +45,9 @@ export default function SalesQuery() {
     const handleClickOutside = (e) => {
       if (loteDropdownRef.current && !loteDropdownRef.current.contains(e.target)) {
         setShowLoteDropdown(false);
+      }
+      if (paymentDropdownRef.current && !paymentDropdownRef.current.contains(e.target)) {
+        setShowPaymentDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -137,8 +142,13 @@ export default function SalesQuery() {
       filtered = filtered.filter(sale => sale.cliente_id == selectedClientId);
     }
 
-    if (selectedPaymentMethod) {
-      filtered = filtered.filter(sale => sale.forma_pagamento === selectedPaymentMethod);
+    if (selectedPaymentMethods.length > 0) {
+      filtered = filtered.filter(sale =>
+        selectedPaymentMethods.some(method => {
+          if (method === 'cancelada') return sale.status === 'cancelada';
+          return sale.forma_pagamento === method && sale.status !== 'cancelada';
+        })
+      );
     }
 
     if (selectedLotes.length > 0) {
@@ -202,7 +212,8 @@ export default function SalesQuery() {
     setStartDate('');
     setEndDate('');
     setSelectedClientId('');
-    setSelectedPaymentMethod('');
+    setSelectedPaymentMethods([]);
+    setShowPaymentDropdown(false);
     setSelectedProductType('');
     setSelectedLotes([]);
     setShowLoteDropdown(false);
@@ -506,21 +517,43 @@ export default function SalesQuery() {
               </select>
             </div>
 
-            <div>
-              <label htmlFor="paymentMethod" className="block text-sm font-semibold text-dark mb-2">
-                Forma de Pagamento
+            <div className="relative" ref={paymentDropdownRef}>
+              <label className="block text-sm font-semibold text-dark mb-2">
+                Forma de Pagamento {selectedPaymentMethods.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-primary text-white text-xs rounded-full">{selectedPaymentMethods.length}</span>}
               </label>
-              <select
-                id="paymentMethod"
-                value={selectedPaymentMethod}
-                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              <button
+                type="button"
+                onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-left text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white flex justify-between items-center"
               >
-                <option value="">-- Todas as formas --</option>
-                <option value="vista">À vista</option>
-                <option value="prazo">A Prazo</option>
-                <option value="consignado">Consignado</option>
-              </select>
+                <span className="text-gray-600 truncate">
+                  {selectedPaymentMethods.length === 0
+                    ? '-- Todas as formas --'
+                    : selectedPaymentMethods.length === 1
+                    ? {vista: 'À vista', prazo: 'A Prazo', consignado: 'Consignado', cancelada: 'Canceladas'}[selectedPaymentMethods[0]]
+                    : `${selectedPaymentMethods.length} formas selecionadas`}
+                </span>
+                <ChevronDown size={16} className={`ml-2 flex-shrink-0 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} />
+              </button>
+              {showPaymentDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg">
+                  {[{value: 'vista', label: 'À vista'}, {value: 'prazo', label: 'A Prazo'}, {value: 'consignado', label: 'Consignado'}, {value: 'cancelada', label: 'Canceladas'}].map(({value, label}) => (
+                    <label key={value} className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedPaymentMethods.includes(value)}
+                        onChange={(e) => {
+                          setSelectedPaymentMethods(prev =>
+                            e.target.checked ? [...prev, value] : prev.filter(m => m !== value)
+                          );
+                        }}
+                        className="accent-primary"
+                      />
+                      <span className="text-sm text-dark">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
